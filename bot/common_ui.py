@@ -1,0 +1,81 @@
+"""Общие UI-помощники: главное меню, уведомления администраторам и т.п."""
+
+from __future__ import annotations
+
+import sqlite3
+from typing import Optional
+
+from . import keyboards, repo, texts
+from .instance import bot
+
+
+def full_name(user: sqlite3.Row) -> str:
+    parts = [user["last_name"], user["first_name"], user["patronymic"]]
+    return " ".join(p for p in parts if p) or (user["display_name"] or "—")
+
+
+async def send_main_menu(user_id: int, greeting: Optional[str] = None) -> None:
+    """Отправляет пользователю меню, соответствующее его статусу и роли."""
+    user = repo.get_user(user_id)
+
+    # Не зарегистрирован (нет роли) — меню до регистрации.
+    if user is None or not user["role"]:
+        await bot.send_message(
+            user_id=user_id,
+            text=greeting or (
+                f"{texts.BOT_NAME}\n\nВыберите действие. Полный функционал "
+                "доступен после регистрации."
+            ),
+            attachments=[keyboards.pre_registration_menu().as_markup()],
+        )
+        return
+
+    # Зарегистрирован, но ждёт подтверждения.
+    if user["status"] == "pending":
+        kb = keyboards.InlineKeyboardBuilder()
+        kb.row(keyboards.CallbackButton(
+            text="❓ Часто задаваемые вопросы", payload="faq"))
+        kb.row(keyboards.CallbackButton(
+            text="📋 Контакты администраторов", payload="admins"))
+        await bot.send_message(
+            user_id=user_id,
+            text=greeting or texts.NEED_VERIFICATION,
+            attachments=[kb.as_markup()],
+        )
+        return
+
+    if user["status"] == "rejected":
+        await bot.send_message(
+            user_id=user_id,
+            text=texts.REJECTED_NOTICE,
+            attachments=[keyboards.pre_registration_menu().as_markup()],
+        )
+        return
+
+    # Подтверждён — полное меню по роли.
+    role_label = texts.ROLE_LABELS.get(user["role"], "")
+    await bot.send_message(
+        user_id=user_id,
+        text=greeting or f"{texts.BOT_NAME}\nВаша роль: {role_label}\n\nВыберите действие:",
+        attachments=[keyboards.main_menu(user["role"]).as_markup()],
+    )
+
+
+async def notify_admins(text: str, attachments=None) -> None:
+    """Рассылает сообщение всем подтверждённым администраторам."""
+    for admin_id in repo.list_admin_user_ids():
+        try:
+            await bot.send_message(
+                user_id=admin_id, text=text, attachments=attachments
+            )
+        except Exception:  # noqa: BLE001 — не падаем из-за одного получателя
+            continue
+
+
+def require_verified(user_id: int) -> bool:
+    return repo.is_verified(user_id)
+
+
+def require_role(user_id: int, *roles: str) -> bool:
+    user = repo.get_user(user_id)
+    return bool(user and user["status"] == "verified" and user["role"] in roles)

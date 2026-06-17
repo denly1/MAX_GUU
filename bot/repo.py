@@ -1,0 +1,424 @@
+"""Функции доступа к данным (репозиторий) поверх sqlite3."""
+
+from __future__ import annotations
+
+import sqlite3
+from typing import Any, Optional
+
+from .database import get_conn
+
+
+def _c() -> sqlite3.Connection:
+    return get_conn()
+
+
+# ── Пользователи ───────────────────────────────────────────────────────────
+def get_user(user_id: int) -> Optional[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM users WHERE user_id = ?", (user_id,)
+    ).fetchone()
+
+
+def upsert_user_contact(user_id: int, chat_id: int | None,
+                        display_name: str | None = None) -> None:
+    """Создаёт запись пользователя (если нет) и обновляет chat_id/имя."""
+    conn = _c()
+    existing = get_user(user_id)
+    if existing is None:
+        conn.execute(
+            "INSERT INTO users (user_id, chat_id, display_name, status) "
+            "VALUES (?, ?, ?, NULL)",
+            (user_id, chat_id, display_name),
+        )
+    else:
+        conn.execute(
+            "UPDATE users SET chat_id = COALESCE(?, chat_id), "
+            "display_name = COALESCE(?, display_name) WHERE user_id = ?",
+            (chat_id, display_name, user_id),
+        )
+    conn.commit()
+
+
+def save_registration(user_id: int, role: str, fields: dict[str, Any],
+                      status: str = "pending") -> None:
+    """Сохраняет данные регистрации. fields — словарь колонок users."""
+    conn = _c()
+    columns = ["role", "status"] + list(fields.keys())
+    placeholders = ", ".join(f"{col} = ?" for col in columns)
+    values = [role, status] + list(fields.values())
+    conn.execute(
+        f"UPDATE users SET {placeholders} WHERE user_id = ?",
+        (*values, user_id),
+    )
+    conn.commit()
+
+
+def set_user_status(user_id: int, status: str) -> None:
+    conn = _c()
+    conn.execute("UPDATE users SET status = ? WHERE user_id = ?",
+                 (status, user_id))
+    conn.commit()
+
+
+def set_user_role(user_id: int, role: str, status: str = "verified") -> None:
+    conn = _c()
+    conn.execute("UPDATE users SET role = ?, status = ? WHERE user_id = ?",
+                 (role, status, user_id))
+    conn.commit()
+
+
+def is_admin(user_id: int) -> bool:
+    row = get_user(user_id)
+    return bool(row and row["role"] == "admin" and row["status"] == "verified")
+
+
+def is_verified(user_id: int) -> bool:
+    row = get_user(user_id)
+    return bool(row and row["status"] == "verified")
+
+
+def list_admin_user_ids() -> list[int]:
+    rows = _c().execute(
+        "SELECT user_id FROM users WHERE role = 'admin' AND status = 'verified'"
+    ).fetchall()
+    return [r["user_id"] for r in rows]
+
+
+def list_users_by_status(status: str) -> list[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM users WHERE status = ? ORDER BY created_at", (status,)
+    ).fetchall()
+
+
+def list_all_active_users() -> list[sqlite3.Row]:
+    """Верифицированные пользователи с известным chat_id/user_id."""
+    return _c().execute(
+        "SELECT * FROM users WHERE status = 'verified'"
+    ).fetchall()
+
+
+def list_students() -> list[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM users WHERE role = 'student' AND status = 'verified'"
+    ).fetchall()
+
+
+# ── FAQ ────────────────────────────────────────────────────────────────────
+def list_faq() -> list[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM faq ORDER BY position"
+    ).fetchall()
+
+
+def get_faq(faq_id: int) -> Optional[sqlite3.Row]:
+    return _c().execute("SELECT * FROM faq WHERE id = ?", (faq_id,)).fetchone()
+
+
+# ── Контакты администраторов ───────────────────────────────────────────────
+def list_admin_contacts() -> list[sqlite3.Row]:
+    return _c().execute("SELECT * FROM admin_contacts ORDER BY id").fetchall()
+
+
+# ── Вопросы пользователей («задать свой вопрос») ───────────────────────────
+def add_user_question(user_id: int, question_text: str, fio: str,
+                      phone: str) -> int:
+    conn = _c()
+    cur = conn.execute(
+        "INSERT INTO user_questions (user_id, question_text, fio, phone) "
+        "VALUES (?, ?, ?, ?)",
+        (user_id, question_text, fio, phone),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def get_question(qid: int) -> Optional[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM user_questions WHERE id = ?", (qid,)
+    ).fetchone()
+
+
+def answer_question(qid: int, answer: str) -> None:
+    conn = _c()
+    conn.execute(
+        "UPDATE user_questions SET answer = ?, status = 'answered' WHERE id = ?",
+        (answer, qid),
+    )
+    conn.commit()
+
+
+# ── Обратная связь ─────────────────────────────────────────────────────────
+def add_feedback(user_id: int, text: str) -> int:
+    conn = _c()
+    cur = conn.execute(
+        "INSERT INTO feedback (user_id, text) VALUES (?, ?)", (user_id, text)
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def get_feedback(fid: int) -> Optional[sqlite3.Row]:
+    return _c().execute("SELECT * FROM feedback WHERE id = ?", (fid,)).fetchone()
+
+
+def answer_feedback(fid: int, answer: str) -> None:
+    conn = _c()
+    conn.execute(
+        "UPDATE feedback SET answer = ?, status = 'answered' WHERE id = ?",
+        (answer, fid),
+    )
+    conn.commit()
+
+
+# ── Задачи ─────────────────────────────────────────────────────────────────
+def add_task(number: int | None, title: str, partner_name: str,
+             description: str, max_teams: int,
+             education_program: str | None = None) -> int:
+    conn = _c()
+    cur = conn.execute(
+        "INSERT INTO tasks (number, title, partner_name, description, "
+        "max_teams, education_program) VALUES (?, ?, ?, ?, ?, ?)",
+        (number, title, partner_name, description, max_teams, education_program),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def get_task(task_id: int) -> Optional[sqlite3.Row]:
+    return _c().execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+
+
+def list_tasks(active_only: bool = False) -> list[sqlite3.Row]:
+    q = "SELECT * FROM tasks"
+    if active_only:
+        q += " WHERE active = 1"
+    q += " ORDER BY number, id"
+    return _c().execute(q).fetchall()
+
+
+def list_available_tasks() -> list[sqlite3.Row]:
+    """Активные задачи, у которых ещё есть свободные слоты для команд."""
+    rows = _c().execute(
+        """
+        SELECT t.*, (
+            SELECT COUNT(*) FROM teams te WHERE te.task_id = t.id
+        ) AS taken
+        FROM tasks t
+        WHERE t.active = 1
+        """
+    ).fetchall()
+    return [r for r in rows if r["taken"] < r["max_teams"]]
+
+
+def task_taken_count(task_id: int) -> int:
+    return _c().execute(
+        "SELECT COUNT(*) FROM teams WHERE task_id = ?", (task_id,)
+    ).fetchone()[0]
+
+
+def update_task(task_id: int, **fields: Any) -> None:
+    if not fields:
+        return
+    conn = _c()
+    placeholders = ", ".join(f"{k} = ?" for k in fields)
+    conn.execute(
+        f"UPDATE tasks SET {placeholders} WHERE id = ?",
+        (*fields.values(), task_id),
+    )
+    conn.commit()
+
+
+def delete_task(task_id: int) -> None:
+    conn = _c()
+    conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    conn.commit()
+
+
+# ── Команды ────────────────────────────────────────────────────────────────
+def create_team(name: str, password: str, leader_id: int) -> int:
+    conn = _c()
+    cur = conn.execute(
+        "INSERT INTO teams (name, password, leader_id) VALUES (?, ?, ?)",
+        (name, password, leader_id),
+    )
+    team_id = cur.lastrowid
+    conn.execute(
+        "INSERT INTO team_members (team_id, user_id, role_in_team) "
+        "VALUES (?, ?, 'leader')",
+        (team_id, leader_id),
+    )
+    conn.commit()
+    return team_id
+
+
+def get_team(team_id: int) -> Optional[sqlite3.Row]:
+    return _c().execute("SELECT * FROM teams WHERE id = ?", (team_id,)).fetchone()
+
+
+def get_team_by_name(name: str) -> Optional[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM teams WHERE name = ?", (name,)
+    ).fetchone()
+
+
+def list_teams() -> list[sqlite3.Row]:
+    return _c().execute("SELECT * FROM teams ORDER BY name").fetchall()
+
+
+def get_user_team(user_id: int) -> Optional[sqlite3.Row]:
+    return _c().execute(
+        """
+        SELECT t.*, tm.role_in_team AS member_role
+        FROM team_members tm JOIN teams t ON t.id = tm.team_id
+        WHERE tm.user_id = ?
+        """,
+        (user_id,),
+    ).fetchone()
+
+
+def add_team_member(team_id: int, user_id: int) -> bool:
+    conn = _c()
+    try:
+        conn.execute(
+            "INSERT INTO team_members (team_id, user_id, role_in_team) "
+            "VALUES (?, ?, 'member')",
+            (team_id, user_id),
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+
+
+def list_team_members(team_id: int) -> list[sqlite3.Row]:
+    return _c().execute(
+        """
+        SELECT tm.role_in_team, u.*
+        FROM team_members tm JOIN users u ON u.user_id = tm.user_id
+        WHERE tm.team_id = ?
+        """,
+        (team_id,),
+    ).fetchall()
+
+
+def set_team_task(team_id: int, task_id: int) -> None:
+    conn = _c()
+    conn.execute("UPDATE teams SET task_id = ? WHERE id = ?", (task_id, team_id))
+    conn.commit()
+
+
+# ── Рассылки / события ─────────────────────────────────────────────────────
+def create_event(kind: str, text: str, link: str | None,
+                 created_by: int) -> int:
+    conn = _c()
+    cur = conn.execute(
+        "INSERT INTO events (kind, text, link, created_by) VALUES (?, ?, ?, ?)",
+        (kind, text, link, created_by),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def get_event(event_id: int) -> Optional[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM events WHERE id = ?", (event_id,)
+    ).fetchone()
+
+
+def add_event_recipient(event_id: int, user_id: int) -> None:
+    conn = _c()
+    try:
+        conn.execute(
+            "INSERT INTO event_recipients (event_id, user_id) VALUES (?, ?)",
+            (event_id, user_id),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+
+
+def set_event_response(event_id: int, user_id: int, response: str) -> None:
+    conn = _c()
+    conn.execute(
+        "UPDATE event_recipients SET response = ? "
+        "WHERE event_id = ? AND user_id = ?",
+        (response, event_id, user_id),
+    )
+    conn.commit()
+
+
+def list_event_responses(event_id: int) -> list[sqlite3.Row]:
+    return _c().execute(
+        """
+        SELECT er.response, u.*
+        FROM event_recipients er JOIN users u ON u.user_id = er.user_id
+        WHERE er.event_id = ?
+        """,
+        (event_id,),
+    ).fetchall()
+
+
+def list_events_by_admin(admin_id: int) -> list[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM events WHERE created_by = ? ORDER BY id DESC",
+        (admin_id,),
+    ).fetchall()
+
+
+# ── Мемы ───────────────────────────────────────────────────────────────────
+def get_meme(code_word: str) -> Optional[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM memes WHERE lower(code_word) = lower(?)", (code_word,)
+    ).fetchone()
+
+
+def list_memes() -> list[sqlite3.Row]:
+    return _c().execute("SELECT * FROM memes ORDER BY id").fetchall()
+
+
+def upsert_meme(code_word: str, text: str, image_path: str | None) -> None:
+    conn = _c()
+    conn.execute(
+        """
+        INSERT INTO memes (code_word, text, image_path) VALUES (?, ?, ?)
+        ON CONFLICT(code_word) DO UPDATE SET text = excluded.text,
+            image_path = COALESCE(excluded.image_path, memes.image_path)
+        """,
+        (code_word, text, image_path),
+    )
+    conn.commit()
+
+
+def delete_meme(code_word: str) -> None:
+    conn = _c()
+    conn.execute("DELETE FROM memes WHERE lower(code_word) = lower(?)",
+                 (code_word,))
+    conn.commit()
+
+
+# ── Заявки на проект (2.12) ────────────────────────────────────────────────
+APPLICATION_COLUMNS = [
+    "project_name", "org_name", "source", "department", "description",
+    "dobro_link", "target_audience", "beneficiaries_count", "mechanism",
+    "desired_product", "skills", "study_directions", "period_start",
+    "period_end", "contact_fio", "contact_phone", "contact_telegram",
+]
+
+
+def add_application(user_id: int, data: dict[str, Any]) -> int:
+    conn = _c()
+    cols = ["user_id"] + APPLICATION_COLUMNS
+    values = [user_id] + [data.get(c) for c in APPLICATION_COLUMNS]
+    placeholders = ", ".join("?" for _ in cols)
+    cur = conn.execute(
+        f"INSERT INTO applications ({', '.join(cols)}) VALUES ({placeholders})",
+        values,
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def list_applications() -> list[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM applications ORDER BY id DESC"
+    ).fetchall()

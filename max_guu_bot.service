@@ -1,0 +1,15 @@
+[Unit]
+Description=MAX GUU Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/MAX_GUU
+Environment="PATH=/opt/MAX_GUU/venv/bin"
+ExecStart=/opt/MAX_GUU/venv/bin/python /opt/MAX_GUU/run.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
