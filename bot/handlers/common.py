@@ -54,6 +54,15 @@ async def on_start(event: MessageCreated, context: BaseContext) -> None:
     await send_main_menu(user_id)
 
 
+@router.message_created(Command("id"))
+async def on_id(event: MessageCreated) -> None:
+    _, user_id = event.get_ids()
+    await event.message.answer(
+        f"Ваш MAX user_id: {user_id}\n\n"
+        "Передайте его администратору для добавления в систему."
+    )
+
+
 @router.message_created(Command("menu"))
 async def on_menu_cmd(event: MessageCreated, context: BaseContext) -> None:
     await context.clear()

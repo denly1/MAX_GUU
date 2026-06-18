@@ -141,6 +141,35 @@ async def admins_cb(event: MessageCallback) -> None:
         )
         return
     
+    # Показать конкретный контакт
+    if sub == "view":
+        contact_id = int(parts[2])
+        contact = repo.get_admin_contact(contact_id)
+        if not contact:
+            await event.ack(notification="Контакт не найден")
+            return
+        
+        text = (
+            f"👤 **{contact['fio']}**\n\n"
+            f"📞 Телефон: {contact['phone']}\n"
+            f"💬 Telegram: {contact['telegram'] or '—'}"
+        )
+        
+        kb = InlineKeyboardBuilder()
+        kb.row(CallbackButton(text="🔙 К списку контактов", payload="admins"))
+        kb.row(keyboards.back_button())
+        
+        # Если есть фото, отправляем с фото
+        if contact['photo_token']:
+            from maxapi.types.attachments.image import Image
+            await event.edit(
+                text=text,
+                attachments=[Image(file_token=contact['photo_token']), kb.as_markup()],
+            )
+        else:
+            await event.edit(text=text, attachments=[kb.as_markup()])
+        return
+    
     # Показать список контактов (для всех пользователей)
     contacts = repo.list_admin_contacts()
     
@@ -156,33 +185,17 @@ async def admins_cb(event: MessageCallback) -> None:
         await event.edit(text=text, attachments=[kb.as_markup()])
         return
     
-    # Отправляем каждый контакт отдельным сообщением с фото
-    await event.edit(
-        text="📋 Контакты администраторов программы «Обучение служением»:",
-        attachments=[],
-    )
+    # Показываем список контактов с кнопками
+    text = "📋 **Контакты администраторов программы «Обучение служением»**\n\n"
+    text += "Выберите контакт для просмотра:\n"
     
-    for contact in contacts:
-        text = (
-            f"👤 **{contact['fio']}**\n\n"
-            f"📞 Телефон: {contact['phone']}\n"
-            f"💬 Telegram: {contact['telegram'] or '—'}"
-        )
-        
-        # Если есть фото (токен), отправляем с фото
-        if contact['photo_token']:
-            from maxapi.types.attachments.image import Image
-            await bot.send_message(
-                user_id=user_id,
-                text=text,
-                attachments=[Image(file_token=contact['photo_token'])],
-            )
-        else:
-            # Если нет фото, просто текст
-            await bot.send_message(user_id=user_id, text=text)
-    
-    # Кнопки управления (для админов)
     kb = InlineKeyboardBuilder()
+    for contact in contacts:
+        kb.row(CallbackButton(
+            text=f"👤 {contact['fio']}",
+            payload=f"admins:view:{contact['id']}"
+        ))
+    
     if require_role(user_id, "admin"):
         kb.row(CallbackButton(
             text="⚙️ Управление контактами",
@@ -190,11 +203,7 @@ async def admins_cb(event: MessageCallback) -> None:
         ))
     kb.row(keyboards.back_button())
     
-    await bot.send_message(
-        user_id=user_id,
-        text="—",
-        attachments=[kb.as_markup()],
-    )
+    await event.edit(text=text, attachments=[kb.as_markup()])
 
 
 # ── FSM: Добавление/редактирование контакта ───────────────────────────────
@@ -279,10 +288,23 @@ async def contact_telegram(event: MessageCreated, context: BaseContext) -> None:
 
 @router.message_created(AdminContactEdit.photo, F.message.body.text)
 async def contact_photo_skip(event: MessageCreated, context: BaseContext) -> None:
-    """Пропуск фото."""
+    """Пропуск или удаление фото."""
     text = (event.message.body.text or "").strip()
     if text == "-":
         data = await context.get_data()
+        edit_contact_id = data.get('edit_contact_id')
+        
+        # Если редактируем существующий контакт
+        if edit_contact_id:
+            repo.update_admin_contact(edit_contact_id, photo_token=None)
+            await context.clear()
+            await event.message.answer(
+                f"✅ Фото удалено!",
+                attachments=[keyboards.main_menu_kb().as_markup()],
+            )
+            return
+        
+        # Иначе добавляем новый контакт без фото
         contact_id = repo.add_admin_contact(
             fio=data['fio'],
             phone=data['phone'],
@@ -317,6 +339,19 @@ async def contact_photo_upload(event: MessageCreated, context: BaseContext) -> N
         return
     
     data = await context.get_data()
+    edit_contact_id = data.get('edit_contact_id')
+    
+    # Если редактируем существующий контакт
+    if edit_contact_id:
+        repo.update_admin_contact(edit_contact_id, photo_token=photo_token)
+        await context.clear()
+        await event.message.answer(
+            f"✅ Фото обновлено!",
+            attachments=[keyboards.main_menu_kb().as_markup()],
+        )
+        return
+    
+    # Иначе добавляем новый контакт с фото
     contact_id = repo.add_admin_contact(
         fio=data['fio'],
         phone=data['phone'],

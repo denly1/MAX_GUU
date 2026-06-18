@@ -39,16 +39,17 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
     if role == "student":
         # Основные функции студента
         kb.row(CallbackButton(text="🎯 Выбор проекта", payload="task:menu"))
-        kb.row(CallbackButton(text="� Примеры отчётности", payload="templates"))
+        kb.row(CallbackButton(text="📂 Примеры отчётности", payload="templates"))
         # Информация и помощь
+        kb.row(CallbackButton(text="👤 Мой профиль", payload="profile"))
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
-        kb.row(CallbackButton(text="� Контакты", payload="admins"))
+        kb.row(CallbackButton(text="📋 Контакты", payload="admins"))
         kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
         
     elif role == "teacher":
         # Основные функции преподавателя
-        kb.row(CallbackButton(text="� Подать заявку на проект", payload="app:start"))
-        kb.row(CallbackButton(text="� Список проектов", payload="task:list"))
+        kb.row(CallbackButton(text="📝 Подать заявку на проект", payload="app:start"))
+        kb.row(CallbackButton(text="📑 Список проектов", payload="task:list"))
         # Информация и помощь
         kb.row(CallbackButton(text="👤 Мой профиль", payload="profile"))
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
@@ -60,8 +61,8 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
         kb.row(CallbackButton(text="📝 Подать заявку на проект", payload="app:start"))
         # Информация и помощь
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
-        kb.row(CallbackButton(text="� Контакты", payload="admins"))
-        kb.row(CallbackButton(text="�💬 Обратная связь", payload="fb:start"))
+        kb.row(CallbackButton(text="📋 Контакты", payload="admins"))
+        kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
         
     elif role == "admin":
         # Админ-панель
@@ -71,20 +72,20 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
         # Управление контентом
         kb.row(CallbackButton(text="🗂 Проекты", payload="tadm:menu"))
         kb.row(CallbackButton(text="📥 Заявки", payload="apps:list"))
-        kb.row(CallbackButton(text="� Мемы", payload="meme:menu"))
+        kb.row(CallbackButton(text="😎 Мемы", payload="meme:menu"))
         # Коммуникация
-        kb.row(CallbackButton(text="� Рассылка", payload="mail:start"))
+        kb.row(CallbackButton(text="📨 Рассылка", payload="mail:start"))
         kb.row(CallbackButton(text="📞 Созвон", payload="call:start"))
         # Отчёты и статистика
         kb.row(CallbackButton(text="📊 Статистика", payload="stats"))
         kb.row(CallbackButton(text="📥 Экспорт", payload="expch:run"))
         # Информация
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
-        kb.row(CallbackButton(text="� Контакты", payload="admins"))
+        kb.row(CallbackButton(text="📋 Контакты", payload="admins"))
     else:
         # Меню для незарегистрированных
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
-        kb.row(CallbackButton(text="� Контакты", payload="admins"))
+        kb.row(CallbackButton(text="📋 Контакты", payload="admins"))
         
     return kb
 
