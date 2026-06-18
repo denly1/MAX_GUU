@@ -89,6 +89,17 @@ async def notify_admins(text: str, attachments=None) -> None:
             continue
 
 
+async def notify_students(text: str, attachments=None) -> None:
+    """Рассылает сообщение всем подтверждённым студентам."""
+    for student_id in repo.list_student_user_ids():
+        try:
+            await bot.send_message(
+                user_id=student_id, text=text, attachments=attachments
+            )
+        except Exception:  # noqa: BLE001 — не падаем из-за одного получателя
+            continue
+
+
 def require_verified(user_id: int) -> bool:
     return repo.is_verified(user_id)
 

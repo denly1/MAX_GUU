@@ -50,6 +50,7 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
         kb.row(CallbackButton(text="� Подать заявку на проект", payload="app:start"))
         kb.row(CallbackButton(text="� Список проектов", payload="task:list"))
         # Информация и помощь
+        kb.row(CallbackButton(text="👤 Мой профиль", payload="profile"))
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
         kb.row(CallbackButton(text="📋 Контакты", payload="admins"))
         kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
@@ -72,8 +73,9 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
         # Коммуникация
         kb.row(CallbackButton(text="� Рассылка", payload="mail:start"))
         kb.row(CallbackButton(text="📞 Созвон", payload="call:start"))
-        # Отчёты
-        kb.row(CallbackButton(text="📊 Экспорт", payload="expch:run"))
+        # Отчёты и статистика
+        kb.row(CallbackButton(text="📊 Статистика", payload="stats"))
+        kb.row(CallbackButton(text="📥 Экспорт", payload="expch:run"))
         # Информация
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
         kb.row(CallbackButton(text="� Контакты", payload="admins"))
@@ -99,9 +101,24 @@ def faq_list(items: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     return kb
 
 
-def faq_back() -> InlineKeyboardBuilder:
+def faq_manage(items: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
+    """Меню управления FAQ для администраторов."""
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="➕ Добавить FAQ", payload="faq:add"))
+    for row in items:
+        kb.row(CallbackButton(
+            text=f"🗑 {row['question'][:40]}...",
+            payload=f"faq:delete:{row['id']}"
+        ))
+    kb.row(back_button())
+    return kb
+
+
+def faq_back(is_admin: bool = False) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(CallbackButton(text="🔙 К списку вопросов", payload="faq"))
+    if is_admin:
+        kb.row(CallbackButton(text="⚙️ Управление FAQ", payload="faq:manage"))
     kb.row(back_button())
     return kb
 

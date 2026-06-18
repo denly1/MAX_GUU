@@ -121,3 +121,10 @@ class AdminContactEdit(StatesGroup):
     phone = State()
     telegram = State()
     photo = State()
+
+
+class FAQEdit(StatesGroup):
+    """Добавление/редактирование FAQ."""
+
+    question = State()
+    answer = State()

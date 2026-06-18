@@ -9,9 +9,9 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 
 from .. import keyboards, repo, texts, validators
-from ..common_ui import notify_admins
+from ..common_ui import notify_admins, require_role
 from ..filters import CbPrefix
-from ..states import AskQuestion
+from ..states import AskQuestion, FAQEdit
 
 router = Router(router_id="faq")
 
@@ -42,6 +42,48 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
         await event.edit(
             text="Укажите ваш вопрос:",
             attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+    
+    # Управление FAQ (только для админов)
+    if parts[1] == "manage":
+        user_id = event.callback.user.user_id
+        if not require_role(user_id, "admin"):
+            await event.ack(notification="Доступно только администраторам")
+            return
+        faqs = repo.list_faq()
+        await event.edit(
+            text="⚙️ Управление FAQ:",
+            attachments=[keyboards.faq_manage(faqs).as_markup()],
+        )
+        return
+    
+    # Добавить FAQ
+    if parts[1] == "add":
+        user_id = event.callback.user.user_id
+        if not require_role(user_id, "admin"):
+            await event.ack(notification="Доступно только администраторам")
+            return
+        await context.clear()
+        await context.set_state(FAQEdit.question)
+        await event.edit(
+            text="➕ Добавление FAQ\n\nВведите вопрос:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+    
+    # Удалить FAQ
+    if parts[1] == "delete":
+        user_id = event.callback.user.user_id
+        if not require_role(user_id, "admin"):
+            await event.ack(notification="Доступно только администраторам")
+            return
+        faq_id = int(parts[2])
+        repo.delete_faq(faq_id)
+        faqs = repo.list_faq()
+        await event.edit(
+            text="🗑 FAQ удалён.\n\n⚙️ Управление FAQ:",
+            attachments=[keyboards.faq_manage(faqs).as_markup()],
         )
         return
 
@@ -94,6 +136,35 @@ async def ask_phone(event: MessageCreated, context: BaseContext) -> None:
             f"Вопрос: {data.get('question_text', '')}\n\n"
             f"Ответить: /answerq {qid}"
         )
+    )
+
+
+# ── FSM: Добавление FAQ (админ) ────────────────────────────────────────────
+@router.message_created(FAQEdit.question, F.message.body.text)
+async def faq_question(event: MessageCreated, context: BaseContext) -> None:
+    question = (event.message.body.text or "").strip()
+    if not question:
+        await event.message.answer("Вопрос не может быть пустым. Попробуйте ещё раз:")
+        return
+    await context.update_data(question=question)
+    await context.set_state(FAQEdit.answer)
+    await event.message.answer("Введите ответ на вопрос:")
+
+
+@router.message_created(FAQEdit.answer, F.message.body.text)
+async def faq_answer(event: MessageCreated, context: BaseContext) -> None:
+    answer = (event.message.body.text or "").strip()
+    if not answer:
+        await event.message.answer("Ответ не может быть пустым. Попробуйте ещё раз:")
+        return
+    
+    data = await context.get_data()
+    repo.add_faq(question=data['question'], answer=answer)
+    await context.clear()
+    
+    await event.message.answer(
+        f"✅ FAQ добавлен!\n\n❓ {data['question']}\n\n{answer}",
+        attachments=[keyboards.main_menu_kb().as_markup()],
     )
 
 

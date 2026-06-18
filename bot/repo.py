@@ -103,6 +103,14 @@ def list_students() -> list[sqlite3.Row]:
     ).fetchall()
 
 
+def list_student_user_ids() -> list[int]:
+    """Возвращает user_id всех подтверждённых студентов."""
+    rows = _c().execute(
+        "SELECT user_id FROM users WHERE role = 'student' AND status = 'verified'"
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
 # ── FAQ ────────────────────────────────────────────────────────────────────
 def list_faq() -> list[sqlite3.Row]:
     return _c().execute(
@@ -112,6 +120,28 @@ def list_faq() -> list[sqlite3.Row]:
 
 def get_faq(faq_id: int) -> Optional[sqlite3.Row]:
     return _c().execute("SELECT * FROM faq WHERE id = ?", (faq_id,)).fetchone()
+
+
+def add_faq(question: str, answer: str) -> int:
+    """Добавляет новый FAQ."""
+    conn = _c()
+    # Получаем максимальную позицию
+    max_pos = conn.execute("SELECT MAX(position) FROM faq").fetchone()[0]
+    position = (max_pos or 0) + 1
+    
+    cur = conn.execute(
+        "INSERT INTO faq (question, answer, position) VALUES (?, ?, ?)",
+        (question, answer, position),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def delete_faq(faq_id: int) -> None:
+    """Удаляет FAQ."""
+    conn = _c()
+    conn.execute("DELETE FROM faq WHERE id = ?", (faq_id,))
+    conn.commit()
 
 
 # ── Контакты администраторов ───────────────────────────────────────────────
@@ -314,6 +344,19 @@ def get_user_team(user_id: int) -> Optional[sqlite3.Row]:
     ).fetchone()
 
 
+def get_user_teams(user_id: int) -> list[sqlite3.Row]:
+    """Возвращает все команды пользователя."""
+    return _c().execute(
+        """
+        SELECT t.*, tm.role_in_team AS member_role
+        FROM team_members tm JOIN teams t ON t.id = tm.team_id
+        WHERE tm.user_id = ?
+        ORDER BY t.created_at DESC
+        """,
+        (user_id,),
+    ).fetchall()
+
+
 def add_team_member(team_id: int, user_id: int) -> bool:
     conn = _c()
     try:
@@ -432,6 +475,55 @@ def delete_meme(code_word: str) -> None:
     conn.execute("DELETE FROM memes WHERE lower(code_word) = lower(?)",
                  (code_word,))
     conn.commit()
+
+
+# ── Статистика ─────────────────────────────────────────────────────────────
+def get_statistics() -> dict[str, int]:
+    """Возвращает общую статистику программы."""
+    conn = _c()
+    
+    # Пользователи
+    total_users = conn.execute("SELECT COUNT(*) FROM users WHERE role IS NOT NULL").fetchone()[0]
+    students = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'student'").fetchone()[0]
+    teachers = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'teacher'").fetchone()[0]
+    partners = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'partner'").fetchone()[0]
+    admins = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'").fetchone()[0]
+    pending = conn.execute("SELECT COUNT(*) FROM users WHERE status = 'pending'").fetchone()[0]
+    
+    # Проекты
+    total_tasks = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+    active_tasks = conn.execute("SELECT COUNT(*) FROM tasks WHERE active = 1").fetchone()[0]
+    inactive_tasks = total_tasks - active_tasks
+    
+    # Команды
+    total_teams = conn.execute("SELECT COUNT(*) FROM teams").fetchone()[0]
+    team_members = conn.execute("SELECT COUNT(*) FROM team_members").fetchone()[0]
+    avg_team_size = round(team_members / total_teams, 1) if total_teams > 0 else 0
+    
+    # Активность
+    questions = conn.execute("SELECT COUNT(*) FROM user_questions").fetchone()[0]
+    feedback = conn.execute("SELECT COUNT(*) FROM feedback").fetchone()[0]
+    applications = conn.execute("SELECT COUNT(*) FROM applications").fetchone()[0]
+    memes = conn.execute("SELECT COUNT(*) FROM memes").fetchone()[0]
+    
+    return {
+        'total_users': total_users,
+        'students': students,
+        'teachers': teachers,
+        'partners': partners,
+        'admins': admins,
+        'pending': pending,
+        'total_tasks': total_tasks,
+        'active_tasks': active_tasks,
+        'inactive_tasks': inactive_tasks,
+        'total_teams': total_teams,
+        'team_members': team_members,
+        'avg_team_size': avg_team_size,
+        'questions': questions,
+        'feedback': feedback,
+        'applications': applications,
+        'memes': memes,
+    }
 
 
 # ── Заявки на проект (2.12) ────────────────────────────────────────────────

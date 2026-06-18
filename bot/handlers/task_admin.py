@@ -10,6 +10,7 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 
 from .. import keyboards, reports, repo, validators
+from ..common_ui import notify_students
 from ..filters import CbPrefix
 from ..instance import bot
 from ..states import TaskAdmin
@@ -176,4 +177,15 @@ async def ta_program(event: MessageCreated, context: BaseContext) -> None:
     await event.message.answer(
         f"✅ Задача «{data['title']}» добавлена (№{number}).",
         attachments=[keyboards.task_admin_menu().as_markup()],
+    )
+    
+    # Уведомляем всех студентов о новом проекте
+    await notify_students(
+        text=(
+            f"🆕 **Новый проект доступен!**\n\n"
+            f"📌 {data['title']}\n"
+            f"🤝 Партнёр: {data.get('partner', '—')}\n\n"
+            f"📝 {data.get('description', '')}\n\n"
+            f"Выбери этот проект в разделе «Выбор проекта»!"
+        )
     )
