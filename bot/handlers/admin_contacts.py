@@ -113,7 +113,7 @@ async def admins_cb(event: MessageCallback) -> None:
         )
         
         # Если есть фото (токен), отправляем с фото
-        if contact.get('photo_token'):
+        if contact['photo_token']:
             from maxapi.types.attachments.image import Image
             await bot.send_message(
                 user_id=user_id,

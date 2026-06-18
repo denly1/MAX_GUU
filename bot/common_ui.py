@@ -54,9 +54,26 @@ async def send_main_menu(user_id: int, greeting: Optional[str] = None) -> None:
 
     # Подтверждён — полное меню по роли.
     role_label = texts.ROLE_LABELS.get(user["role"], "")
+    name = user["first_name"] or user["display_name"] or "Пользователь"
+    
+    # Персонализированное приветствие
+    if greeting:
+        menu_text = greeting
+    else:
+        menu_text = f"👋 Привет, {name}!\n\n📚 **{texts.BOT_NAME}**\n\n"
+        
+        if user["role"] == "student":
+            menu_text += "🎓 Выбери проект и начни работу над ним в команде!"
+        elif user["role"] == "teacher":
+            menu_text += "👨‍🏫 Предложи свой проект или посмотри существующие."
+        elif user["role"] == "partner":
+            menu_text += "🤝 Предложи проект для студентов ГУУ."
+        elif user["role"] == "admin":
+            menu_text += "⚙️ Панель управления программой «Обучение служением»"
+        
     await bot.send_message(
         user_id=user_id,
-        text=greeting or f"{texts.BOT_NAME}\nВаша роль: {role_label}\n\nВыберите действие:",
+        text=menu_text,
         attachments=[keyboards.main_menu(user["role"]).as_markup()],
     )
 

@@ -35,31 +35,53 @@ def pre_registration_menu() -> InlineKeyboardBuilder:
 # ── Главное меню по ролям ──────────────────────────────────────────────────
 def main_menu(role: str) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="❓ Часто задаваемые вопросы", payload="faq"))
-    kb.row(CallbackButton(text="📋 Контакты администраторов", payload="admins"))
-
+    
     if role == "student":
-        kb.row(CallbackButton(text="🎯 Выбор социальной задачи",
-                              payload="task:menu"))
-        kb.row(CallbackButton(text="📂 Примеры отчётности", payload="templates"))
+        # Основные функции студента
+        kb.row(CallbackButton(text="🎯 Выбор проекта", payload="task:menu"))
+        kb.row(CallbackButton(text="� Примеры отчётности", payload="templates"))
+        # Информация и помощь
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="� Контакты", payload="admins"))
         kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
+        
     elif role == "teacher":
-        kb.row(CallbackButton(text="📑 Просмотр списка задач", payload="task:list"))
-        kb.row(CallbackButton(text="📝 Подать заявку на проект", payload="app:start"))
+        # Основные функции преподавателя
+        kb.row(CallbackButton(text="� Подать заявку на проект", payload="app:start"))
+        kb.row(CallbackButton(text="� Список проектов", payload="task:list"))
+        # Информация и помощь
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="📋 Контакты", payload="admins"))
         kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
+        
     elif role == "partner":
+        # Основные функции партнёра
         kb.row(CallbackButton(text="📝 Подать заявку на проект", payload="app:start"))
-        kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
+        # Информация и помощь
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="� Контакты", payload="admins"))
+        kb.row(CallbackButton(text="�💬 Обратная связь", payload="fb:start"))
+        
     elif role == "admin":
-        kb.row(CallbackButton(text="✅ Верификация пользователей",
-                              payload="ver:menu"))
-        kb.row(CallbackButton(text="🗂 Управление задачами", payload="tadm:menu"))
-        kb.row(CallbackButton(text="📊 Выгрузка выбора проектов",
-                              payload="expch:run"))
-        kb.row(CallbackButton(text="📨 Рассылка приглашений", payload="mail:start"))
-        kb.row(CallbackButton(text="📞 Напоминание о созвоне", payload="call:start"))
-        kb.row(CallbackButton(text="😎 Управление мемами", payload="meme:menu"))
-        kb.row(CallbackButton(text="📥 Заявки на проекты", payload="apps:list"))
+        # Управление пользователями
+        kb.row(CallbackButton(text="👥 Верификация", payload="ver:menu"))
+        # Управление контентом
+        kb.row(CallbackButton(text="🗂 Проекты", payload="tadm:menu"))
+        kb.row(CallbackButton(text="📥 Заявки", payload="apps:list"))
+        kb.row(CallbackButton(text="� Мемы", payload="meme:menu"))
+        # Коммуникация
+        kb.row(CallbackButton(text="� Рассылка", payload="mail:start"))
+        kb.row(CallbackButton(text="📞 Созвон", payload="call:start"))
+        # Отчёты
+        kb.row(CallbackButton(text="📊 Экспорт", payload="expch:run"))
+        # Информация
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="� Контакты", payload="admins"))
+    else:
+        # Меню для незарегистрированных
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="� Контакты", payload="admins"))
+        
     return kb
 
 
