@@ -64,6 +64,8 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
         kb.row(CallbackButton(text="�💬 Обратная связь", payload="fb:start"))
         
     elif role == "admin":
+        # Админ-панель
+        kb.row(CallbackButton(text="⚙️ Админ-панель", payload="apanel:main"))
         # Управление пользователями
         kb.row(CallbackButton(text="👥 Верификация", payload="ver:menu"))
         # Управление контентом

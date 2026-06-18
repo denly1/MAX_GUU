@@ -128,3 +128,9 @@ class FAQEdit(StatesGroup):
 
     question = State()
     answer = State()
+
+
+class AdminManage(StatesGroup):
+    """Управление администраторами."""
+
+    user_id = State()

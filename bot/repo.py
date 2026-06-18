@@ -84,6 +84,20 @@ def list_admin_user_ids() -> list[int]:
     return [r["user_id"] for r in rows]
 
 
+def list_admins() -> list[sqlite3.Row]:
+    """Возвращает всех администраторов."""
+    return _c().execute(
+        "SELECT * FROM users WHERE role = 'admin' AND status = 'verified' ORDER BY created_at"
+    ).fetchall()
+
+
+def list_all_users() -> list[sqlite3.Row]:
+    """Возвращает всех пользователей с ролями."""
+    return _c().execute(
+        "SELECT * FROM users WHERE role IS NOT NULL ORDER BY created_at DESC"
+    ).fetchall()
+
+
 def list_users_by_status(status: str) -> list[sqlite3.Row]:
     return _c().execute(
         "SELECT * FROM users WHERE status = ? ORDER BY created_at", (status,)

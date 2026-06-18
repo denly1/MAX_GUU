@@ -39,6 +39,7 @@ async def profile_cb(event: MessageCallback) -> None:
     }
     
     text = f"👤 **Мой профиль**\n\n"
+    text += f"**ID:** {user_id}\n"
     text += f"**Роль:** {role_labels.get(user['role'], user['role'])}\n"
     text += f"**Статус:** {status_labels.get(user['status'], user['status'])}\n\n"
     

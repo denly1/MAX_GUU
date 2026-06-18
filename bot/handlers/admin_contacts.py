@@ -60,14 +60,71 @@ async def admins_cb(event: MessageCallback) -> None:
         contact_id = int(parts[2])
         contact = repo.get_admin_contact(contact_id)
         if contact:
+            kb = InlineKeyboardBuilder()
+            kb.row(CallbackButton(text="✏️ Изменить ФИО", payload=f"admins:edit_fio:{contact_id}"))
+            kb.row(CallbackButton(text="📞 Изменить телефон", payload=f"admins:edit_phone:{contact_id}"))
+            kb.row(CallbackButton(text="💬 Изменить Telegram", payload=f"admins:edit_tg:{contact_id}"))
+            kb.row(CallbackButton(text="📸 Изменить фото", payload=f"admins:edit_photo:{contact_id}"))
+            kb.row(CallbackButton(text="🗑 Удалить контакт", payload=f"admins:delete:{contact_id}"))
+            kb.row(CallbackButton(text="🔙 Назад", payload="admins:manage"))
+            
             await event.edit(
-                text=(f"✏️ Редактирование контакта:\n\n"
-                      f"ФИО: {contact['fio']}\n"
-                      f"Телефон: {contact['phone']}\n"
-                      f"Telegram: {contact['telegram'] or '—'}\n\n"
-                      f"Что хотите изменить?"),
-                attachments=[keyboards.admin_contact_edit_menu(contact_id).as_markup()],
+                text=(f"✏️ **Редактирование контакта**\n\n"
+                      f"**ФИО:** {contact['fio']}\n"
+                      f"**Телефон:** {contact['phone']}\n"
+                      f"**Telegram:** {contact['telegram'] or '—'}\n"
+                      f"**Фото:** {'✅ Есть' if contact['photo_token'] else '❌ Нет'}\n\n"
+                      f"Выберите, что хотите изменить:"),
+                attachments=[kb.as_markup()],
             )
+        return
+    
+    # Редактировать ФИО
+    if sub == "edit_fio":
+        contact_id = int(parts[2])
+        await event.callback.context.clear()
+        await event.callback.context.update_data(edit_contact_id=contact_id, edit_field="fio")
+        await event.callback.context.set_state(AdminContactEdit.fio)
+        await event.edit(
+            text="✏️ Введите новое ФИО:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+    
+    # Редактировать телефон
+    if sub == "edit_phone":
+        contact_id = int(parts[2])
+        await event.callback.context.clear()
+        await event.callback.context.update_data(edit_contact_id=contact_id, edit_field="phone")
+        await event.callback.context.set_state(AdminContactEdit.phone)
+        await event.edit(
+            text="📞 Введите новый телефон:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+    
+    # Редактировать Telegram
+    if sub == "edit_tg":
+        contact_id = int(parts[2])
+        await event.callback.context.clear()
+        await event.callback.context.update_data(edit_contact_id=contact_id, edit_field="telegram")
+        await event.callback.context.set_state(AdminContactEdit.telegram)
+        await event.edit(
+            text="💬 Введите новый Telegram (или - для удаления):",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+    
+    # Редактировать фото
+    if sub == "edit_photo":
+        contact_id = int(parts[2])
+        await event.callback.context.clear()
+        await event.callback.context.update_data(edit_contact_id=contact_id, edit_field="photo")
+        await event.callback.context.set_state(AdminContactEdit.photo)
+        await event.edit(
+            text="📸 Отправьте новое фото (или - для удаления):",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
         return
     
     # Удалить контакт
@@ -140,13 +197,28 @@ async def admins_cb(event: MessageCallback) -> None:
     )
 
 
-# ── FSM: Добавление контакта ───────────────────────────────────────────────
+# ── FSM: Добавление/редактирование контакта ───────────────────────────────
 @router.message_created(AdminContactEdit.fio, F.message.body.text)
 async def contact_fio(event: MessageCreated, context: BaseContext) -> None:
     fio = (event.message.body.text or "").strip()
     if not fio:
         await event.message.answer("ФИО не может быть пустым. Попробуйте ещё раз:")
         return
+    
+    data = await context.get_data()
+    edit_contact_id = data.get('edit_contact_id')
+    
+    # Если редактируем существующий контакт
+    if edit_contact_id:
+        repo.update_admin_contact(edit_contact_id, fio=fio)
+        await context.clear()
+        await event.message.answer(
+            f"✅ ФИО обновлено!",
+            attachments=[keyboards.main_menu_kb().as_markup()],
+        )
+        return
+    
+    # Иначе добавляем новый
     await context.update_data(fio=fio)
     await context.set_state(AdminContactEdit.phone)
     await event.message.answer("Введите номер телефона:")
@@ -158,6 +230,20 @@ async def contact_phone(event: MessageCreated, context: BaseContext) -> None:
     if not phone:
         await event.message.answer("Телефон не может быть пустым. Попробуйте ещё раз:")
         return
+    
+    data = await context.get_data()
+    edit_contact_id = data.get('edit_contact_id')
+    
+    # Если редактируем существующий контакт
+    if edit_contact_id:
+        repo.update_admin_contact(edit_contact_id, phone=phone)
+        await context.clear()
+        await event.message.answer(
+            f"✅ Телефон обновлён!",
+            attachments=[keyboards.main_menu_kb().as_markup()],
+        )
+        return
+    
     await context.update_data(phone=phone)
     await context.set_state(AdminContactEdit.telegram)
     await event.message.answer(
@@ -170,6 +256,20 @@ async def contact_telegram(event: MessageCreated, context: BaseContext) -> None:
     telegram = (event.message.body.text or "").strip()
     if telegram == "-":
         telegram = None
+    
+    data = await context.get_data()
+    edit_contact_id = data.get('edit_contact_id')
+    
+    # Если редактируем существующий контакт
+    if edit_contact_id:
+        repo.update_admin_contact(edit_contact_id, telegram=telegram)
+        await context.clear()
+        await event.message.answer(
+            f"✅ Telegram обновлён!",
+            attachments=[keyboards.main_menu_kb().as_markup()],
+        )
+        return
+    
     await context.update_data(telegram=telegram)
     await context.set_state(AdminContactEdit.photo)
     await event.message.answer(

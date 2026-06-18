@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .admin_contacts import router as admin_contacts_router
+from .admin_panel import router as admin_panel_router
 from .applications import router as applications_router
 from .common import router as common_router
 from .faq import router as faq_router
@@ -25,6 +26,7 @@ all_routers = [
     faq_router,
     profile_router,
     admin_contacts_router,
+    admin_panel_router,
     statistics_router,
     verification_router,
     tasks_router,
