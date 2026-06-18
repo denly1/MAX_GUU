@@ -112,3 +112,12 @@ class Application(StatesGroup):
     contact_fio = State()
     contact_phone = State()
     contact_telegram = State()
+
+
+class AdminContactEdit(StatesGroup):
+    """Добавление/редактирование контакта администратора."""
+
+    fio = State()
+    phone = State()
+    telegram = State()
+    photo = State()

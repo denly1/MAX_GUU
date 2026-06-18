@@ -245,3 +245,33 @@ def skip_cancel_kb() -> InlineKeyboardBuilder:
         CallbackButton(text="✖️ Отмена", payload="cancel"),
     )
     return kb
+
+
+# ── Управление контактами администраторов ──────────────────────────────────
+def admin_contacts_manage(contacts: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
+    """Меню управления контактами администраторов."""
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="➕ Добавить контакт", payload="admins:add"))
+    for contact in contacts:
+        kb.row(CallbackButton(
+            text=f"✏️ {contact['fio']}",
+            payload=f"admins:edit:{contact['id']}"
+        ))
+    kb.row(back_button())
+    return kb
+
+
+def admin_contact_edit_menu(contact_id: int) -> InlineKeyboardBuilder:
+    """Меню редактирования контакта."""
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="🗑 Удалить контакт", 
+                          payload=f"admins:delete:{contact_id}"))
+    kb.row(back_button("admins:manage"))
+    return kb
+
+
+def main_menu_kb() -> InlineKeyboardBuilder:
+    """Кнопка возврата в главное меню."""
+    kb = InlineKeyboardBuilder()
+    kb.row(back_button())
+    return kb

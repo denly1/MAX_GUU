@@ -55,11 +55,12 @@ CREATE TABLE IF NOT EXISTS faq (
 );
 
 CREATE TABLE IF NOT EXISTS admin_contacts (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    fio       TEXT,
-    phone     TEXT,
-    telegram  TEXT,
-    photo_url TEXT
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    fio         TEXT,
+    phone       TEXT,
+    telegram    TEXT,
+    photo_url   TEXT,
+    photo_token TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tasks (

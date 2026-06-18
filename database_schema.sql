@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS admin_contacts (
     fio TEXT NOT NULL,
     phone TEXT NOT NULL,
     telegram TEXT,
-    photo_url TEXT
+    photo_url TEXT,
+    photo_token TEXT
 );
 
 -- Вопросы пользователей

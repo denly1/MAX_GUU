@@ -97,20 +97,6 @@ async def ask_phone(event: MessageCreated, context: BaseContext) -> None:
     )
 
 
-# ── Контакты администраторов ───────────────────────────────────────────────
-@router.message_callback(CbPrefix("admins"))
-async def admins_cb(event: MessageCallback) -> None:
-    lines = ["📋 Справочная информация об администраторах:\n"]
-    for c in repo.list_admin_contacts():
-        lines.append(
-            f"• {c['fio']}\n  Телефон: {c['phone']}\n"
-            f"  Telegram: {c['telegram']}\n  Фото: {c['photo_url']}"
-        )
-    kb = keyboards.InlineKeyboardBuilder()
-    kb.row(keyboards.back_button())
-    await event.edit(text="\n\n".join(lines), attachments=[kb.as_markup()])
-
-
 # ── Примеры отчётности ─────────────────────────────────────────────────────
 @router.message_callback(CbPrefix("templates"))
 async def templates_cb(event: MessageCallback) -> None:

@@ -119,6 +119,44 @@ def list_admin_contacts() -> list[sqlite3.Row]:
     return _c().execute("SELECT * FROM admin_contacts ORDER BY id").fetchall()
 
 
+def get_admin_contact(contact_id: int) -> Optional[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM admin_contacts WHERE id = ?", (contact_id,)
+    ).fetchone()
+
+
+def add_admin_contact(fio: str, phone: str, telegram: str | None = None,
+                      photo_token: str | None = None) -> int:
+    """Добавляет новый контакт администратора."""
+    conn = _c()
+    cur = conn.execute(
+        "INSERT INTO admin_contacts (fio, phone, telegram, photo_token) "
+        "VALUES (?, ?, ?, ?)",
+        (fio, phone, telegram, photo_token),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def update_admin_contact(contact_id: int, **fields) -> None:
+    """Обновляет контакт администратора."""
+    conn = _c()
+    columns = ", ".join(f"{col} = ?" for col in fields.keys())
+    values = list(fields.values()) + [contact_id]
+    conn.execute(
+        f"UPDATE admin_contacts SET {columns} WHERE id = ?",
+        values,
+    )
+    conn.commit()
+
+
+def delete_admin_contact(contact_id: int) -> None:
+    """Удаляет контакт администратора."""
+    conn = _c()
+    conn.execute("DELETE FROM admin_contacts WHERE id = ?", (contact_id,))
+    conn.commit()
+
+
 # ── Вопросы пользователей («задать свой вопрос») ───────────────────────────
 def add_user_question(user_id: int, question_text: str, fio: str,
                       phone: str) -> int:

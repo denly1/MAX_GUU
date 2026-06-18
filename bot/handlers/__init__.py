@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .admin_contacts import router as admin_contacts_router
 from .applications import router as applications_router
 from .common import router as common_router
 from .faq import router as faq_router
@@ -20,6 +21,7 @@ all_routers = [
     common_router,
     registration_router,
     faq_router,
+    admin_contacts_router,
     verification_router,
     tasks_router,
     task_admin_router,
