@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from maxapi.context.base import BaseContext
 from maxapi.dispatcher import Router
+from maxapi.types.attachments.buttons.callback_button import CallbackButton
 from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
+from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from maxapi import F
 
 from .. import keyboards, repo
@@ -87,9 +89,9 @@ async def admins_cb(event: MessageCallback) -> None:
     
     if not contacts:
         text = "📋 Контакты администраторов пока не добавлены."
-        kb = keyboards.InlineKeyboardBuilder()
+        kb = InlineKeyboardBuilder()
         if require_role(user_id, "admin"):
-            kb.row(keyboards.CallbackButton(
+            kb.row(CallbackButton(
                 text="⚙️ Управление контактами",
                 payload="admins:manage"
             ))
@@ -123,9 +125,9 @@ async def admins_cb(event: MessageCallback) -> None:
             await bot.send_message(user_id=user_id, text=text)
     
     # Кнопки управления (для админов)
-    kb = keyboards.InlineKeyboardBuilder()
+    kb = InlineKeyboardBuilder()
     if require_role(user_id, "admin"):
-        kb.row(keyboards.CallbackButton(
+        kb.row(CallbackButton(
             text="⚙️ Управление контактами",
             payload="admins:manage"
         ))
