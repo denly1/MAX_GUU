@@ -26,23 +26,38 @@ async def fb_cb(event: MessageCallback, context: BaseContext) -> None:
     parts = keyboards.parse_cb(event.callback.payload)
     sub = parts[1] if len(parts) > 1 else ""
     
-    # Админ нажал "Ответить" на обращение
+    # Админ нажал "Ответить" на обращение или вопрос
     if sub == "answer" and len(parts) >= 3:
         if not repo.is_admin(user_id):
             await event.ack(notification="Доступно только администраторам")
             return
-        fid = int(parts[2])
-        f = repo.get_feedback(fid)
-        if not f:
-            await event.ack(notification="Обращение не найдено")
+        target_id = int(parts[2])
+        
+        # Сначала проверяем обращение (feedback)
+        f = repo.get_feedback(target_id)
+        if f:
+            await context.clear()
+            await context.set_state(AnswerDialog.text)
+            await context.update_data(kind="f", target_id=target_id, recipient=f["user_id"])
+            await event.edit(
+                text=f"Обращение:\n«{f['text']}»\n\nВведите ваш ответ:",
+                attachments=[keyboards.cancel_kb().as_markup()],
+            )
             return
-        await context.clear()
-        await context.set_state(AnswerDialog.text)
-        await context.update_data(kind="f", target_id=fid, recipient=f["user_id"])
-        await event.edit(
-            text=f"Обращение:\n«{f['text']}»\n\nВведите ваш ответ:",
-            attachments=[keyboards.cancel_kb().as_markup()],
-        )
+        
+        # Иначе проверяем вопрос (questions)
+        q = repo.get_question(target_id)
+        if q:
+            await context.clear()
+            await context.set_state(AnswerDialog.text)
+            await context.update_data(kind="q", target_id=target_id, recipient=q["user_id"])
+            await event.edit(
+                text=f"Вопрос:\n«{q['question_text']}»\n\nВведите ваш ответ:",
+                attachments=[keyboards.cancel_kb().as_markup()],
+            )
+            return
+        
+        await event.ack(notification="Обращение или вопрос не найдены")
         return
     
     # Обычный пользователь начинает обратную связь

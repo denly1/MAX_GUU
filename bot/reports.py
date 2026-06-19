@@ -39,7 +39,7 @@ def export_task_choices() -> Path:
     rows = get_conn().execute(
         """
         SELECT u.last_name, u.first_name, u.patronymic, u.institute, u.course,
-               u.education_program, u.group_name, tm.role_in_team,
+               u.group_name, tm.role_in_team,
                t.name AS team_name, t.task_id
         FROM team_members tm
         JOIN users u ON u.user_id = tm.user_id
@@ -53,7 +53,8 @@ def export_task_choices() -> Path:
         task = repo.get_task(r["task_id"]) if r["task_id"] else None
         ws.append([
             r["last_name"], r["first_name"], r["patronymic"], r["institute"],
-            r["course"], r["education_program"], r["group_name"],
+            r["course"], task["education_program"] if task else "",
+            r["group_name"],
             role_label.get(r["role_in_team"], r["role_in_team"]),
             r["team_name"],
             task["title"] if task else "",

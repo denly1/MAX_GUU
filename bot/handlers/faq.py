@@ -5,11 +5,13 @@ from __future__ import annotations
 from maxapi import F
 from maxapi.context.base import BaseContext
 from maxapi.dispatcher import Router
+from maxapi.types.attachments.buttons.callback_button import CallbackButton
 from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
+from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from .. import keyboards, repo, texts, validators
-from ..common_ui import notify_admins, require_role
+from ..common_ui import notify_admins_with_markup, require_role
 from ..filters import CbPrefix
 from ..states import AskQuestion, FAQEdit
 
@@ -31,7 +33,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
         faq = repo.get_faq(int(parts[2]))
         if faq:
             await event.edit(
-                text=f"❓ {faq['question']}\n\n{faq['answer']}",
+                text=f"{faq['question']}\n\n{faq['answer']}",
                 attachments=[keyboards.faq_back().as_markup()],
             )
         return
@@ -53,7 +55,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
             return
         faqs = repo.list_faq()
         await event.edit(
-            text="⚙️ Управление FAQ:",
+            text="Управление FAQ:",
             attachments=[keyboards.faq_manage(faqs).as_markup()],
         )
         return
@@ -67,7 +69,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
         await context.clear()
         await context.set_state(FAQEdit.question)
         await event.edit(
-            text="➕ Добавление FAQ\n\nВведите вопрос:",
+            text="Добавление FAQ\n\nВведите вопрос:",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
@@ -82,7 +84,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
         repo.delete_faq(faq_id)
         faqs = repo.list_faq()
         await event.edit(
-            text="🗑 FAQ удалён.\n\n⚙️ Управление FAQ:",
+            text="FAQ удален.\n\nУправление FAQ:",
             attachments=[keyboards.faq_manage(faqs).as_markup()],
         )
         return
@@ -128,14 +130,16 @@ async def ask_phone(event: MessageCreated, context: BaseContext) -> None:
     await event.message.answer(
         "Спасибо! Ваш вопрос отправлен администраторам. Мы свяжемся с вами."
     )
-    await notify_admins(
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="Ответить", payload=f"fb:answer:{qid}"))
+    await notify_admins_with_markup(
         text=(
-            f"📩 Новый вопрос (#{qid})\n\n"
+            f"Новый вопрос (#{qid})\n\n"
             f"От: {data.get('fio', '')}\n"
             f"Телефон: {phone}\n\n"
-            f"Вопрос: {data.get('question_text', '')}\n\n"
-            f"Ответить: /answerq {qid}"
-        )
+            f"Вопрос: {data.get('question_text', '')}"
+        ),
+        markup=kb,
     )
 
 
@@ -163,7 +167,7 @@ async def faq_answer(event: MessageCreated, context: BaseContext) -> None:
     await context.clear()
     
     await event.message.answer(
-        f"✅ FAQ добавлен!\n\n❓ {data['question']}\n\n{answer}",
+        f"FAQ добавлен!\n\n{data['question']}\n\n{answer}",
         attachments=[keyboards.main_menu_kb().as_markup()],
     )
 
@@ -175,7 +179,7 @@ async def templates_cb(event: MessageCallback) -> None:
     kb.row(keyboards.back_button())
     await event.edit(
         text=(
-            "📂 Примеры отчётности:\n\n"
+            "Примеры отчётности:\n\n"
             f"• Шаблон презентации на защиту:\n{texts.TEMPLATE_PRESENTATION}\n\n"
             f"• Шаблон визитки / стендовой презентации:\n{texts.TEMPLATE_VISITKA}"
         ),
