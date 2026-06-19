@@ -6,11 +6,13 @@ from maxapi import F
 from maxapi.context.base import BaseContext
 from maxapi.dispatcher import Router
 from maxapi.filters.command import Command
+from maxapi.types.attachments.buttons.callback_button import CallbackButton
 from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
+from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from .. import keyboards, repo
-from ..common_ui import notify_admins, require_verified
+from ..common_ui import notify_admins, notify_admins_with_markup, require_verified
 from ..filters import CbPrefix
 from ..instance import bot
 from ..states import AnswerDialog, Feedback
@@ -19,15 +21,38 @@ router = Router(router_id="feedback")
 
 
 @router.message_callback(CbPrefix("fb"))
-async def fb_start(event: MessageCallback, context: BaseContext) -> None:
+async def fb_cb(event: MessageCallback, context: BaseContext) -> None:
     user_id = event.callback.user.user_id
+    parts = keyboards.parse_cb(event.callback.payload)
+    sub = parts[1] if len(parts) > 1 else ""
+    
+    # Админ нажал "Ответить" на обращение
+    if sub == "answer" and len(parts) >= 3:
+        if not repo.is_admin(user_id):
+            await event.ack(notification="Доступно только администраторам")
+            return
+        fid = int(parts[2])
+        f = repo.get_feedback(fid)
+        if not f:
+            await event.ack(notification="Обращение не найдено")
+            return
+        await context.clear()
+        await context.set_state(AnswerDialog.text)
+        await context.update_data(kind="f", target_id=fid, recipient=f["user_id"])
+        await event.edit(
+            text=f"Обращение:\n«{f['text']}»\n\nВведите ваш ответ:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+    
+    # Обычный пользователь начинает обратную связь
     if not require_verified(user_id):
         await event.ack(notification="Доступно после регистрации")
         return
     await context.clear()
     await context.set_state(Feedback.text)
     await event.edit(
-        text=("💬 Обратная связь.\nНапишите ваш вопрос или сообщение — "
+        text=("Обратная связь.\nНапишите ваш вопрос или сообщение — "
               "оно будет направлено администратору, и он вам ответит:"),
         attachments=[keyboards.cancel_kb().as_markup()],
     )
@@ -46,10 +71,15 @@ async def fb_text(event: MessageCreated, context: BaseContext) -> None:
     user = repo.get_user(user_id)
     fio = " ".join(filter(None, [user["last_name"], user["first_name"],
                                  user["patronymic"]])) if user else str(user_id)
-    await notify_admins(
-        text=(f"💬 Новое сообщение обратной связи (#{fid})\n\n"
+    
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="Ответить", payload=f"fb:answer:{fid}"))
+    
+    await notify_admins_with_markup(
+        text=(f"Новое сообщение обратной связи (#{fid})\n\n"
               f"От: {fio}\nТелефон: {user['phone'] if user else '—'}\n\n"
-              f"Сообщение: {text}\n\nОтветить: /answerf {fid}")
+              f"Сообщение: {text}"),
+        markup=kb,
     )
 
 
@@ -108,8 +138,8 @@ async def answer_send(event: MessageCreated, context: BaseContext) -> None:
         repo.answer_feedback(data["target_id"], answer)
         prefix = "Ответ на ваше обращение"
     try:
-        await bot.send_message(user_id=recipient, text=f"📩 {prefix}:\n\n{answer}")
+        await bot.send_message(user_id=recipient, text=f"{prefix}:\n\n{answer}\n\nЕсли нужно уточнить - нажмите Обратную связь в меню.")
     except Exception:  # noqa: BLE001
         await event.message.answer("Не удалось доставить ответ пользователю.")
         return
-    await event.message.answer("✅ Ответ отправлен пользователю.")
+    await event.message.answer("Ответ отправлен пользователю.")

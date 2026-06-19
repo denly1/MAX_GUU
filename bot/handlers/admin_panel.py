@@ -36,25 +36,25 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     if not sub or sub == "main":
         kb = InlineKeyboardBuilder()
         # Управление пользователями
-        kb.row(CallbackButton(text="👥 Верификация", payload="ver:menu"))
-        kb.row(CallbackButton(text="👥 Управление администраторами", payload="apanel:admins"))
+        kb.row(CallbackButton(text="Верификация", payload="ver:menu"))
+        kb.row(CallbackButton(text="Управление администраторами", payload="apanel:admins"))
         kb.row(CallbackButton(text="� Просмотр пользователей", payload="apanel:users"))
-        kb.row(CallbackButton(text="�🔄 Переключение роли", payload="apanel:switch"))
+        kb.row(CallbackButton(text="�Переключение роли", payload="apanel:switch"))
         # Управление контентом
         kb.row(CallbackButton(text="� Проекты", payload="tadm:menu"))
-        kb.row(CallbackButton(text="📥 Заявки", payload="apps:list"))
-        kb.row(CallbackButton(text="😎 Мемы", payload="meme:menu"))
-        kb.row(CallbackButton(text="📋 Управление контактами", payload="admins:manage"))
+        kb.row(CallbackButton(text="Заявки", payload="apps:list"))
+        kb.row(CallbackButton(text="Мемы", payload="meme:menu"))
+        kb.row(CallbackButton(text="Управление контактами", payload="admins:manage"))
         # Коммуникация
-        kb.row(CallbackButton(text="📨 Рассылка", payload="mail:start"))
-        kb.row(CallbackButton(text="📞 Созвон", payload="call:start"))
+        kb.row(CallbackButton(text="Рассылка", payload="mail:start"))
+        kb.row(CallbackButton(text="Созвон", payload="call:start"))
         # Отчёты и статистика
-        kb.row(CallbackButton(text="📊 Статистика", payload="stats"))
-        kb.row(CallbackButton(text="📥 Экспорт", payload="expch:run"))
+        kb.row(CallbackButton(text="Статистика", payload="stats"))
+        kb.row(CallbackButton(text="Экспорт", payload="expch:run"))
         kb.row(keyboards.back_button())
         
         await event.edit(
-            text="⚙️ **Админ-панель**\n\nВыберите действие:",
+            text="**Админ-панель**\n\nВыберите действие:",
             attachments=[kb.as_markup()],
         )
         return
@@ -63,7 +63,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     if sub == "admins":
         admins = repo.list_admins()
         
-        text = "👥 **Управление администраторами**\n\n"
+        text = "**Управление администраторами**\n\n"
         text += f"Всего администраторов: {len(admins)}\n\n"
         
         for admin in admins:
@@ -71,14 +71,14 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
             text += f"• {fio} (ID: {admin['user_id']})\n"
         
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="➕ Добавить администратора", payload="apanel:add_admin"))
+        kb.row(CallbackButton(text="Добавить администратора", payload="apanel:add_admin"))
         for admin in admins:
             fio = f"{admin['last_name']} {admin['first_name']}" if admin['last_name'] else admin['display_name']
             kb.row(CallbackButton(
-                text=f"🗑 {fio[:30]}",
+                text=f"Удалить {fio[:30]}",
                 payload=f"apanel:remove_admin:{admin['user_id']}"
             ))
-        kb.row(CallbackButton(text="🔙 Назад", payload="apanel:main"))
+        kb.row(CallbackButton(text="Назад", payload="apanel:main"))
         
         await event.edit(text=text, attachments=[kb.as_markup()])
         return
@@ -115,14 +115,14 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
             try:
                 await bot.send_message(
                     user_id=target_id,
-                    text="⚠️ Вы больше не являетесь администратором системы."
+                    text="Вы больше не являетесь администратором системы."
                 )
             except Exception:
                 pass
         
         # Обновляем список
         admins = repo.list_admins()
-        text = "👥 **Управление администраторами**\n\n"
+        text = "**Управление администраторами**\n\n"
         text += f"Всего администраторов: {len(admins)}\n\n"
         
         for admin in admins:
@@ -130,14 +130,14 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
             text += f"• {fio} (ID: {admin['user_id']})\n"
         
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="➕ Добавить администратора", payload="apanel:add_admin"))
+        kb.row(CallbackButton(text="Добавить администратора", payload="apanel:add_admin"))
         for admin in admins:
             fio = f"{admin['last_name']} {admin['first_name']}" if admin['last_name'] else admin['display_name']
             kb.row(CallbackButton(
-                text=f"🗑 {fio[:30]}",
+                text=f"Удалить {fio[:30]}",
                 payload=f"apanel:remove_admin:{admin['user_id']}"
             ))
-        kb.row(CallbackButton(text="🔙 Назад", payload="apanel:main"))
+        kb.row(CallbackButton(text="Назад", payload="apanel:main"))
         
         await event.edit(text=text, attachments=[kb.as_markup()])
         return
@@ -145,25 +145,25 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     # Переключение роли
     if sub == "switch":
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="🎓 Студент", payload="apanel:role:student"))
-        kb.row(CallbackButton(text="👨‍🏫 Преподаватель", payload="apanel:role:teacher"))
-        kb.row(CallbackButton(text="🤝 Партнёр", payload="apanel:role:partner"))
-        kb.row(CallbackButton(text="⚙️ Администратор", payload="apanel:role:admin"))
-        kb.row(CallbackButton(text="🔙 Назад", payload="apanel:main"))
+        kb.row(CallbackButton(text="Студент", payload="apanel:role:student"))
+        kb.row(CallbackButton(text="Преподаватель", payload="apanel:role:teacher"))
+        kb.row(CallbackButton(text="Партнер", payload="apanel:role:partner"))
+        kb.row(CallbackButton(text="Администратор", payload="apanel:role:admin"))
+        kb.row(CallbackButton(text="Назад", payload="apanel:main"))
         
         current_user = repo.get_user(user_id)
         current_role = current_user['role'] if current_user else 'admin'
         
         role_labels = {
-            'student': '🎓 Студент',
-            'teacher': '👨‍🏫 Преподаватель',
-            'partner': '🤝 Партнёр',
-            'admin': '⚙️ Администратор'
+            'student': 'Студент',
+            'teacher': 'Преподаватель',
+            'partner': 'Партнер',
+            'admin': 'Администратор'
         }
         
         await event.edit(
             text=(
-                f"🔄 **Переключение роли**\n\n"
+                f"**Переключение роли**\n\n"
                 f"Текущая роль: {role_labels.get(current_role, current_role)}\n\n"
                 f"Выберите роль для просмотра интерфейса:"
             ),
@@ -189,7 +189,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     if sub == "users":
         users = repo.list_all_users()
         
-        text = "👤 **Все пользователи**\n\n"
+        text = "**Все пользователи**\n\n"
         text += f"Всего: {len(users)}\n\n"
         
         # Группируем по ролям
@@ -202,16 +202,16 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         
         for role, role_users in by_role.items():
             role_labels = {
-                'student': '🎓 Студенты',
+                'student': 'Студенты',
                 'teacher': '👨‍🏫 Преподаватели',
-                'partner': '🤝 Партнёры',
-                'admin': '⚙️ Администраторы',
+                'partner': 'Партнеры',
+                'admin': 'Администраторы',
                 'Не указана': '❓ Без роли'
             }
             text += f"\n**{role_labels.get(role, role)}:** {len(role_users)}\n"
         
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="🔙 Назад", payload="apanel:main"))
+        kb.row(CallbackButton(text="Назад", payload="apanel:main"))
         
         await event.edit(text=text, attachments=[kb.as_markup()])
         return
@@ -225,14 +225,14 @@ async def add_admin_id(event: MessageCreated, context: BaseContext) -> None:
     try:
         target_id = int(text)
     except ValueError:
-        await event.message.answer("❌ Неверный формат. Введите числовой user_id:")
+        await event.message.answer("Неверный формат. Введите числовой user_id:")
         return
     
     target = repo.get_user(target_id)
     
     if not target:
         await event.message.answer(
-            f"❌ Пользователь с ID {target_id} не найден в системе.\n\n"
+            f"Пользователь с ID {target_id} не найден в системе.\n\n"
             "Пользователь должен сначала зарегистрироваться в боте."
         )
         return
@@ -244,7 +244,7 @@ async def add_admin_id(event: MessageCreated, context: BaseContext) -> None:
     fio = f"{target['last_name']} {target['first_name']}" if target['last_name'] else target['display_name']
     
     await event.message.answer(
-        f"✅ Пользователь {fio} (ID: {target_id}) назначен администратором!",
+        f"Пользователь {fio} (ID: {target_id}) назначен администратором!",
         attachments=[keyboards.main_menu_kb().as_markup()],
     )
     
@@ -253,7 +253,7 @@ async def add_admin_id(event: MessageCreated, context: BaseContext) -> None:
         await bot.send_message(
             user_id=target_id,
             text=(
-                "🎉 Поздравляем!\n\n"
+                "Поздравляем!\n\n"
                 "Вы назначены администратором системы «Обучение служением».\n\n"
                 "Теперь вам доступна полная админ-панель."
             )
@@ -277,10 +277,10 @@ async def admin_command(event: MessageCreated, context: BaseContext) -> None:
         # Возвращаем роль админа
         repo.set_user_role(user_id, "admin", status="verified")
         await context.clear()
-        await event.message.answer("✅ Вы вернулись в режим администратора")
+        await event.message.answer("Вы вернулись в режим администратора")
         await send_main_menu(user_id)
     elif require_role(user_id, "admin"):
         # Уже админ
         await send_main_menu(user_id)
     else:
-        await event.message.answer("❌ У вас нет прав администратора")
+        await event.message.answer("У вас нет прав администратора")

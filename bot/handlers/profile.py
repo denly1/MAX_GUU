@@ -45,7 +45,7 @@ async def profile_cb(event: MessageCallback) -> None:
         'rejected': '❌ Отклонён'
     }
     
-    text = f"👤 **Мой профиль**\n\n"
+    text = f"**Мой профиль**\n\n"
     text += f"**ID:** {user_id}\n"
     text += f"**Роль:** {role_labels.get(user['role'], user['role'])}\n"
     text += f"**Статус:** {status_labels.get(user['status'], user['status'])}\n\n"
@@ -97,7 +97,7 @@ async def profile_cb(event: MessageCallback) -> None:
         text += f"\n📅 **Регистрация:** {user['created_at'][:10]}\n"
     
     kb = keyboards.InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="✏️ Редактировать профиль", payload="profile:edit"))
+    kb.row(CallbackButton(text="Редактировать профиль", payload="profile:edit"))
     kb.row(keyboards.back_button())
     
     await event.edit(text=text, attachments=[kb.as_markup()])
@@ -117,21 +117,21 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
             return
         
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="📝 Фамилия", payload="profile:edit:last_name"))
-        kb.row(CallbackButton(text="📝 Имя", payload="profile:edit:first_name"))
-        kb.row(CallbackButton(text="📝 Отчество", payload="profile:edit:patronymic"))
-        kb.row(CallbackButton(text="📞 Телефон", payload="profile:edit:phone"))
+        kb.row(CallbackButton(text="Фамилия", payload="profile:edit:last_name"))
+        kb.row(CallbackButton(text="Имя", payload="profile:edit:first_name"))
+        kb.row(CallbackButton(text="Отчество", payload="profile:edit:patronymic"))
+        kb.row(CallbackButton(text="Телефон", payload="profile:edit:phone"))
         
         if user["role"] == "student":
-            kb.row(CallbackButton(text="🏫 Институт", payload="profile:edit:institute"))
-            kb.row(CallbackButton(text="📚 Курс", payload="profile:edit:course"))
-            kb.row(CallbackButton(text="👥 Группа", payload="profile:edit:group_name"))
+            kb.row(CallbackButton(text="Институт", payload="profile:edit:institute"))
+            kb.row(CallbackButton(text="Курс", payload="profile:edit:course"))
+            kb.row(CallbackButton(text="Группа", payload="profile:edit:group_name"))
         elif user["role"] == "teacher":
-            kb.row(CallbackButton(text="🏛 Кафедра", payload="profile:edit:department"))
+            kb.row(CallbackButton(text="Кафедра", payload="profile:edit:department"))
         elif user["role"] == "partner":
-            kb.row(CallbackButton(text="🏢 Организация", payload="profile:edit:organization"))
+            kb.row(CallbackButton(text="Организация", payload="profile:edit:organization"))
         
-        kb.row(CallbackButton(text="🔙 Назад", payload="profile"))
+        kb.row(CallbackButton(text="Назад", payload="profile"))
         
         await event.edit(
             text="✏️ Выберите, что хотите изменить:",
@@ -231,5 +231,5 @@ async def profile_edit_value(event: MessageCreated, context: BaseContext) -> Non
     
     await event.message.answer(
         f"✅ {field_labels[field]} обновлено!\n\nНовое значение: {value}",
-        attachments=[InlineKeyboardBuilder().row(CallbackButton(text="👤 Профиль", payload="profile")).as_markup()],
+        attachments=[InlineKeyboardBuilder().row(CallbackButton(text="Профиль", payload="profile")).as_markup()],
     )

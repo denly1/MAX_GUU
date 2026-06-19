@@ -13,7 +13,7 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-from .. import keyboards, repo
+from .. import keyboards, repo, validators
 from ..common_ui import require_role
 from ..filters import CbPrefix
 from ..instance import bot
@@ -24,7 +24,7 @@ router = Router(router_id="admin_contacts")
 
 # ── Просмотр контактов администраторов ─────────────────────────────────────
 @router.message_callback(CbPrefix("admins"))
-async def admins_cb(event: MessageCallback) -> None:
+async def admins_cb(event: MessageCallback, context: BaseContext) -> None:
     """Показывает список контактов администраторов с фото."""
     user_id = event.callback.user.user_id
     parts = keyboards.parse_cb(event.callback.payload)
@@ -37,7 +37,7 @@ async def admins_cb(event: MessageCallback) -> None:
             return
         contacts = repo.list_admin_contacts()
         await event.edit(
-            text="⚙️ Управление контактами администраторов:",
+            text="Управление контактами администраторов:",
             attachments=[keyboards.admin_contacts_manage(contacts).as_markup()],
         )
         return
@@ -48,11 +48,11 @@ async def admins_cb(event: MessageCallback) -> None:
             await event.ack(notification="Доступно только администраторам")
             return
         await event.edit(
-            text="➕ Добавление контакта администратора.\n\nВведите ФИО:",
+            text="Добавление контакта администратора.\n\nВведите ФИО:",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
-        await event.callback.context.clear()
-        await event.callback.context.set_state(AdminContactEdit.fio)
+        await context.clear()
+        await context.set_state(AdminContactEdit.fio)
         return
     
     # Редактировать контакт
@@ -64,19 +64,19 @@ async def admins_cb(event: MessageCallback) -> None:
         contact = repo.get_admin_contact(contact_id)
         if contact:
             kb = InlineKeyboardBuilder()
-            kb.row(CallbackButton(text="✏️ Изменить ФИО", payload=f"admins:edit_fio:{contact_id}"))
-            kb.row(CallbackButton(text="📞 Изменить телефон", payload=f"admins:edit_phone:{contact_id}"))
-            kb.row(CallbackButton(text="💬 Изменить Telegram", payload=f"admins:edit_tg:{contact_id}"))
-            kb.row(CallbackButton(text="📸 Изменить фото", payload=f"admins:edit_photo:{contact_id}"))
-            kb.row(CallbackButton(text="🗑 Удалить контакт", payload=f"admins:delete:{contact_id}"))
-            kb.row(CallbackButton(text="🔙 Назад", payload="admins:manage"))
+            kb.row(CallbackButton(text="Изменить ФИО", payload=f"admins:edit_fio:{contact_id}"))
+            kb.row(CallbackButton(text="Изменить телефон", payload=f"admins:edit_phone:{contact_id}"))
+            kb.row(CallbackButton(text="Изменить Telegram", payload=f"admins:edit_tg:{contact_id}"))
+            kb.row(CallbackButton(text="Изменить фото", payload=f"admins:edit_photo:{contact_id}"))
+            kb.row(CallbackButton(text="Удалить контакт", payload=f"admins:delete:{contact_id}"))
+            kb.row(CallbackButton(text="Назад", payload="admins:manage"))
             
             await event.edit(
-                text=(f"✏️ **Редактирование контакта**\n\n"
+                text=(f"**Редактирование контакта**\n\n"
                       f"**ФИО:** {contact['fio']}\n"
                       f"**Телефон:** {contact['phone']}\n"
                       f"**Telegram:** {contact['telegram'] or '—'}\n"
-                      f"**Фото:** {'✅ Есть' if (contact['photo_token'] or contact['photo_url']) else '❌ Нет'}\n\n"
+                      f"**Фото:** {'Есть' if (contact['photo_token'] or contact['photo_url']) else 'Нет'}\n\n"
                       f"Выберите, что хотите изменить:"),
                 attachments=[kb.as_markup()],
             )
@@ -85,11 +85,11 @@ async def admins_cb(event: MessageCallback) -> None:
     # Редактировать ФИО
     if sub == "edit_fio":
         contact_id = int(parts[2])
-        await event.callback.context.clear()
-        await event.callback.context.update_data(edit_contact_id=contact_id, edit_field="fio")
-        await event.callback.context.set_state(AdminContactEdit.fio)
+        await context.clear()
+        await context.update_data(edit_contact_id=contact_id, edit_field="fio")
+        await context.set_state(AdminContactEdit.fio)
         await event.edit(
-            text="✏️ Введите новое ФИО:",
+            text="Введите новое ФИО:",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
@@ -97,11 +97,11 @@ async def admins_cb(event: MessageCallback) -> None:
     # Редактировать телефон
     if sub == "edit_phone":
         contact_id = int(parts[2])
-        await event.callback.context.clear()
-        await event.callback.context.update_data(edit_contact_id=contact_id, edit_field="phone")
-        await event.callback.context.set_state(AdminContactEdit.phone)
+        await context.clear()
+        await context.update_data(edit_contact_id=contact_id, edit_field="phone")
+        await context.set_state(AdminContactEdit.phone)
         await event.edit(
-            text="📞 Введите новый телефон:",
+            text="Введите новый телефон:",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
@@ -109,11 +109,11 @@ async def admins_cb(event: MessageCallback) -> None:
     # Редактировать Telegram
     if sub == "edit_tg":
         contact_id = int(parts[2])
-        await event.callback.context.clear()
-        await event.callback.context.update_data(edit_contact_id=contact_id, edit_field="telegram")
-        await event.callback.context.set_state(AdminContactEdit.telegram)
+        await context.clear()
+        await context.update_data(edit_contact_id=contact_id, edit_field="telegram")
+        await context.set_state(AdminContactEdit.telegram)
         await event.edit(
-            text="💬 Введите новый Telegram (или - для удаления):",
+            text="Введите новый Telegram (или - для удаления):",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
@@ -121,11 +121,11 @@ async def admins_cb(event: MessageCallback) -> None:
     # Редактировать фото
     if sub == "edit_photo":
         contact_id = int(parts[2])
-        await event.callback.context.clear()
-        await event.callback.context.update_data(edit_contact_id=contact_id, edit_field="photo")
-        await event.callback.context.set_state(AdminContactEdit.photo)
+        await context.clear()
+        await context.update_data(edit_contact_id=contact_id, edit_field="photo")
+        await context.set_state(AdminContactEdit.photo)
         await event.edit(
-            text="📸 Отправьте новое фото (или - для удаления):",
+            text="Отправьте новое фото (или - для удаления):",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
@@ -139,7 +139,7 @@ async def admins_cb(event: MessageCallback) -> None:
         repo.delete_admin_contact(contact_id)
         contacts = repo.list_admin_contacts()
         await event.edit(
-            text="🗑 Контакт удалён.\n\n⚙️ Управление контактами администраторов:",
+            text="Контакт удален.\n\nУправление контактами администраторов:",
             attachments=[keyboards.admin_contacts_manage(contacts).as_markup()],
         )
         return
@@ -153,13 +153,13 @@ async def admins_cb(event: MessageCallback) -> None:
             return
         
         text = (
-            f"👤 **{contact['fio']}**\n\n"
-            f"📞 Телефон: {contact['phone']}\n"
-            f"💬 Telegram: {contact['telegram'] or '—'}"
+            f"**{contact['fio']}**\n\n"
+            f"Телефон: {contact['phone']}\n"
+            f"Telegram: {contact['telegram'] or '—'}"
         )
         
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="🔙 К списку контактов", payload="admins"))
+        kb.row(CallbackButton(text="К списку контактов", payload="admins"))
         kb.row(keyboards.back_button())
         
         # Если есть фото (токен), отправляем с фото
@@ -178,7 +178,7 @@ async def admins_cb(event: MessageCallback) -> None:
                     attachments=[media, kb.as_markup()],
                 )
             except Exception as e:
-                await event.edit(text=f"{text}\n\n⚠️ Не удалось загрузить фото: {e}", attachments=[kb.as_markup()])
+                await event.edit(text=f"{text}\n\nВнимание: не удалось загрузить фото: {e}", attachments=[kb.as_markup()])
         else:
             await event.edit(text=text, attachments=[kb.as_markup()])
         return
@@ -187,11 +187,11 @@ async def admins_cb(event: MessageCallback) -> None:
     contacts = repo.list_admin_contacts()
     
     if not contacts:
-        text = "📋 Контакты администраторов пока не добавлены."
+        text = "Контакты администраторов пока не добавлены."
         kb = InlineKeyboardBuilder()
         if require_role(user_id, "admin"):
             kb.row(CallbackButton(
-                text="⚙️ Управление контактами",
+                text="Управление контактами",
                 payload="admins:manage"
             ))
         kb.row(keyboards.back_button())
@@ -199,19 +199,19 @@ async def admins_cb(event: MessageCallback) -> None:
         return
     
     # Показываем список контактов с кнопками
-    text = "📋 **Контакты администраторов программы «Обучение служением»**\n\n"
+    text = "**Контакты администраторов программы «Обучение служением»**\n\n"
     text += "Выберите контакт для просмотра:\n"
     
     kb = InlineKeyboardBuilder()
     for contact in contacts:
         kb.row(CallbackButton(
-            text=f"👤 {contact['fio']}",
+            text=f"{contact['fio']}",
             payload=f"admins:view:{contact['id']}"
         ))
     
     if require_role(user_id, "admin"):
         kb.row(CallbackButton(
-            text="⚙️ Управление контактами",
+            text="Управление контактами",
             payload="admins:manage"
         ))
     kb.row(keyboards.back_button())
@@ -235,7 +235,7 @@ async def contact_fio(event: MessageCreated, context: BaseContext) -> None:
         repo.update_admin_contact(edit_contact_id, fio=fio)
         await context.clear()
         await event.message.answer(
-            f"✅ ФИО обновлено!",
+            f"ФИО обновлено!",
             attachments=[keyboards.main_menu_kb().as_markup()],
         )
         return
@@ -248,9 +248,14 @@ async def contact_fio(event: MessageCreated, context: BaseContext) -> None:
 
 @router.message_created(AdminContactEdit.phone, F.message.body.text)
 async def contact_phone(event: MessageCreated, context: BaseContext) -> None:
-    phone = (event.message.body.text or "").strip()
-    if not phone:
+    raw_phone = (event.message.body.text or "").strip()
+    if not raw_phone:
         await event.message.answer("Телефон не может быть пустым. Попробуйте ещё раз:")
+        return
+    
+    ok, phone = validators.validate_phone(raw_phone)
+    if not ok:
+        await event.message.answer(validators.PHONE_ERROR)
         return
     
     data = await context.get_data()
@@ -261,7 +266,7 @@ async def contact_phone(event: MessageCreated, context: BaseContext) -> None:
         repo.update_admin_contact(edit_contact_id, phone=phone)
         await context.clear()
         await event.message.answer(
-            f"✅ Телефон обновлён!",
+            f"Телефон обновлен!",
             attachments=[keyboards.main_menu_kb().as_markup()],
         )
         return
@@ -287,7 +292,7 @@ async def contact_telegram(event: MessageCreated, context: BaseContext) -> None:
         repo.update_admin_contact(edit_contact_id, telegram=telegram)
         await context.clear()
         await event.message.answer(
-            f"✅ Telegram обновлён!",
+            f"Telegram обновлен!",
             attachments=[keyboards.main_menu_kb().as_markup()],
         )
         return
@@ -312,7 +317,7 @@ async def contact_photo_skip(event: MessageCreated, context: BaseContext) -> Non
             repo.update_admin_contact(edit_contact_id, photo_token=None)
             await context.clear()
             await event.message.answer(
-                f"✅ Фото удалено!",
+                f"Фото удалено!",
                 attachments=[keyboards.main_menu_kb().as_markup()],
             )
             return
@@ -326,7 +331,7 @@ async def contact_photo_skip(event: MessageCreated, context: BaseContext) -> Non
         )
         await context.clear()
         await event.message.answer(
-            f"✅ Контакт «{data['fio']}» добавлен!",
+            f"Контакт «{data['fio']}» добавлен!",
             attachments=[keyboards.main_menu_kb().as_markup()],
         )
     else:
@@ -359,7 +364,7 @@ async def contact_photo_upload(event: MessageCreated, context: BaseContext) -> N
         repo.update_admin_contact(edit_contact_id, photo_token=photo_token)
         await context.clear()
         await event.message.answer(
-            f"✅ Фото обновлено!",
+            f"Фото обновлено!",
             attachments=[keyboards.main_menu_kb().as_markup()],
         )
         return
@@ -373,6 +378,6 @@ async def contact_photo_upload(event: MessageCreated, context: BaseContext) -> N
     )
     await context.clear()
     await event.message.answer(
-        f"✅ Контакт «{data['fio']}» добавлен с фото!",
+        f"Контакт «{data['fio']}» добавлен с фото!",
         attachments=[keyboards.main_menu_kb().as_markup()],
     )

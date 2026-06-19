@@ -89,6 +89,12 @@ async def notify_admins(text: str, attachments=None) -> None:
             continue
 
 
+async def notify_admins_with_markup(text: str, markup) -> None:
+    """Рассылает сообщение с inline-клавиатурой всем админам."""
+    attachments = [markup.as_markup()] if markup else None
+    await notify_admins(text, attachments=attachments)
+
+
 async def notify_students(text: str, attachments=None) -> None:
     """Рассылает сообщение всем подтверждённым студентам."""
     for student_id in repo.list_student_user_ids():
