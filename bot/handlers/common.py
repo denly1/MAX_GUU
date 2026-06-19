@@ -40,7 +40,8 @@ async def _bootstrap(user_id: int, chat_id: int | None, name: str | None) -> Non
     elif user and user["role"] == "admin":
         # Проверяем, был ли он bootstrap-админом (не добавлен через админ-панель)
         # Если в БД нет других данных (институт, кафедра и т.д.) - значит bootstrap
-        if not user.get("institute") and not user.get("department") and not user.get("organization"):
+        user_data = dict(user)
+        if not user_data.get("institute") and not user_data.get("department") and not user_data.get("organization"):
             repo.set_user_role(user_id, "student", status="pending")
             log.info(f"Понижен bootstrap-админ {user_id} до студента (убран из ADMIN_IDS)")
 
