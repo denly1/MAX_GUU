@@ -17,8 +17,30 @@ ADMIN_CONTACTS = [
 ]
 
 
+def find_photo_for_admin(project_dir: Path, fio: str) -> Path | None:
+    """Ищет фото администратора в папке проекта по фамилии."""
+    # Берём фамилию из ФИО
+    last_name = fio.split()[0].lower()
+    
+    # Расширения фото
+    extensions = [".jpg", ".jpeg", ".png", ".webp"]
+    
+    # Ищем файл, начинающийся с фамилии
+    for ext in extensions:
+        for photo_file in project_dir.rglob(f"*{last_name}*{ext}"):
+            return photo_file
+        # Также пробуем по имени файла без учёта регистра
+        for photo_file in project_dir.iterdir():
+            if photo_file.is_file() and photo_file.suffix.lower() in extensions:
+                if last_name in photo_file.stem.lower():
+                    return photo_file
+    
+    return None
+
+
 def main():
-    db_path = Path(__file__).parent / "data" / "bot.db"
+    project_dir = Path(__file__).parent
+    db_path = project_dir / "data" / "bot.db"
     
     if not db_path.exists():
         print(f"❌ База данных не найдена: {db_path}")
@@ -40,22 +62,32 @@ def main():
     print("🗑 Очистил таблицу admin_contacts")
     
     # Загружаем контакты
-    for fio, phone, telegram, photo_url in ADMIN_CONTACTS:
+    photos_found = 0
+    for fio, phone, telegram, _ in ADMIN_CONTACTS:
+        # Ищем фото в проекте
+        photo_path = find_photo_for_admin(project_dir, fio)
+        photo_url = str(photo_path) if photo_path else None
+        
         cursor.execute(
-            "INSERT INTO admin_contacts (fio, phone, telegram, photo_token) VALUES (?, ?, ?, ?)",
-            (fio, phone, telegram, None)  # photo_token пока None, фото нужно загрузить отдельно
+            "INSERT INTO admin_contacts (fio, phone, telegram, photo_url, photo_token) VALUES (?, ?, ?, ?, ?)",
+            (fio, phone, telegram, photo_url, None)
         )
-        print(f"✅ Добавлен: {fio}")
+        
+        if photo_path:
+            print(f"✅ Добавлен: {fio} (фото: {photo_path.name})")
+            photos_found += 1
+        else:
+            print(f"✅ Добавлен: {fio} (фото не найдено)")
     
     conn.commit()
     conn.close()
     
     print(f"\n✅ Загружено {len(ADMIN_CONTACTS)} контактов администраторов")
-    print("\n⚠️ ВАЖНО: Фотографии нужно загрузить через бота:")
-    print("1. Зайдите в бота как админ")
-    print("2. Контакты → ⚙️ Управление контактами")
-    print("3. Для каждого контакта: ✏️ → 📸 Изменить фото")
-    print("4. Скачайте фото по ссылкам из ТЗ и загрузите в бота")
+    print(f"📸 Найдено фото: {photos_found} из {len(ADMIN_CONTACTS)}")
+    
+    if photos_found < len(ADMIN_CONTACTS):
+        print("\n⚠️ Для контактов без фото загрузите фото вручную через бота:")
+        print("Контакты → ⚙️ Управление контактами → ✏️ → 📸 Изменить фото")
 
 
 if __name__ == "__main__":
