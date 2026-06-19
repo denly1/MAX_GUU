@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from maxapi import F
 from maxapi.context.base import BaseContext
 from maxapi.dispatcher import Router
+from maxapi.types import InputMedia
 from maxapi.types.attachments.buttons.callback_button import CallbackButton
 from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
-from maxapi import F
 
 from .. import keyboards, repo
 from ..common_ui import require_role
@@ -73,7 +76,7 @@ async def admins_cb(event: MessageCallback) -> None:
                       f"**ФИО:** {contact['fio']}\n"
                       f"**Телефон:** {contact['phone']}\n"
                       f"**Telegram:** {contact['telegram'] or '—'}\n"
-                      f"**Фото:** {'✅ Есть' if contact['photo_token'] else '❌ Нет'}\n\n"
+                      f"**Фото:** {'✅ Есть' if (contact['photo_token'] or contact['photo_url']) else '❌ Нет'}\n\n"
                       f"Выберите, что хотите изменить:"),
                 attachments=[kb.as_markup()],
             )
@@ -159,13 +162,23 @@ async def admins_cb(event: MessageCallback) -> None:
         kb.row(CallbackButton(text="🔙 К списку контактов", payload="admins"))
         kb.row(keyboards.back_button())
         
-        # Если есть фото, отправляем с фото
+        # Если есть фото (токен), отправляем с фото
         if contact['photo_token']:
             from maxapi.types.attachments.image import Image
             await event.edit(
                 text=text,
                 attachments=[Image(file_token=contact['photo_token']), kb.as_markup()],
             )
+        elif contact['photo_url'] and Path(contact['photo_url']).exists():
+            # Фото из файла (загружено через миграцию или админку)
+            try:
+                media = InputMedia(path=contact['photo_url'])
+                await event.edit(
+                    text=text,
+                    attachments=[media, kb.as_markup()],
+                )
+            except Exception as e:
+                await event.edit(text=f"{text}\n\n⚠️ Не удалось загрузить фото: {e}", attachments=[kb.as_markup()])
         else:
             await event.edit(text=text, attachments=[kb.as_markup()])
         return
