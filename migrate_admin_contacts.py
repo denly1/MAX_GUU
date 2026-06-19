@@ -19,21 +19,22 @@ ADMIN_CONTACTS = [
 
 def find_photo_for_admin(project_dir: Path, fio: str) -> Path | None:
     """Ищет фото администратора в папке проекта по фамилии."""
-    # Берём фамилию из ФИО
-    last_name = fio.split()[0].lower()
+    # Берём фамилию из ФИО и чистим от пробелов
+    last_name = fio.split()[0].strip().lower()
     
     # Расширения фото
     extensions = [".jpg", ".jpeg", ".png", ".webp"]
     
-    # Ищем файл, начинающийся с фамилии
-    for ext in extensions:
-        for photo_file in project_dir.rglob(f"*{last_name}*{ext}"):
+    # Ищем во всей папке проекта (включая подпапки)
+    for photo_file in project_dir.rglob("*"):
+        if not photo_file.is_file():
+            continue
+        if photo_file.suffix.lower() not in extensions:
+            continue
+        # Чистим имя файла от пробелов и сравниваем с фамилией
+        clean_stem = photo_file.stem.strip().lower().replace(" ", "")
+        if last_name in clean_stem or clean_stem.startswith(last_name):
             return photo_file
-        # Также пробуем по имени файла без учёта регистра
-        for photo_file in project_dir.iterdir():
-            if photo_file.is_file() and photo_file.suffix.lower() in extensions:
-                if last_name in photo_file.stem.lower():
-                    return photo_file
     
     return None
 
