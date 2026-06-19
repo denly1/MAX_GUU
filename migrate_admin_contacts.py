@@ -28,6 +28,13 @@ def main():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
+    # Добавляем колонку photo_token если её нет (для старых БД)
+    try:
+        cursor.execute("ALTER TABLE admin_contacts ADD COLUMN photo_token TEXT")
+        print("✅ Добавлена колонка photo_token")
+    except sqlite3.OperationalError:
+        print("ℹ️ Колонка photo_token уже существует")
+    
     # Очищаем таблицу
     cursor.execute("DELETE FROM admin_contacts")
     print("🗑 Очистил таблицу admin_contacts")
