@@ -67,6 +67,19 @@ def set_user_role(user_id: int, role: str, status: str = "verified") -> None:
     conn.commit()
 
 
+def update_user_field(user_id: int, field: str, value: str | None) -> None:
+    """Обновляет одно поле пользователя."""
+    allowed_fields = {
+        "last_name", "first_name", "patronymic", "phone",
+        "institute", "course", "group_name", "department", "organization"
+    }
+    if field not in allowed_fields:
+        raise ValueError(f"Недопустимое поле: {field}")
+    conn = _c()
+    conn.execute(f"UPDATE users SET {field} = ? WHERE user_id = ?", (value, user_id))
+    conn.commit()
+
+
 def is_admin(user_id: int) -> bool:
     row = get_user(user_id)
     return bool(row and row["role"] == "admin" and row["status"] == "verified")

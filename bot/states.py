@@ -134,3 +134,10 @@ class AdminManage(StatesGroup):
     """Управление администраторами."""
 
     user_id = State()
+
+
+class ProfileEdit(StatesGroup):
+    """Редактирование профиля пользователя."""
+
+    field = State()
+    value = State()
