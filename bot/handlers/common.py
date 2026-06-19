@@ -28,12 +28,21 @@ def _display_name(user_obj) -> str | None:
 
 
 async def _bootstrap(user_id: int, chat_id: int | None, name: str | None) -> None:
-    """Регистрирует контакт и при необходимости назначает bootstrap-админа."""
+    """Регистрирует контакт и при необходимости назначает/убирает bootstrap-админа."""
     repo.upsert_user_contact(user_id, chat_id, name)
+    user = repo.get_user(user_id)
+    
+    # Если user_id в ADMIN_IDS - делаем админом
     if user_id in config.ADMIN_IDS:
-        user = repo.get_user(user_id)
         if not user or user["role"] != "admin" or user["status"] != "verified":
             repo.set_user_role(user_id, "admin", status="verified")
+    # Если user_id НЕ в ADMIN_IDS, но в БД он админ - понижаем до студента
+    elif user and user["role"] == "admin":
+        # Проверяем, был ли он bootstrap-админом (не добавлен через админ-панель)
+        # Если в БД нет других данных (институт, кафедра и т.д.) - значит bootstrap
+        if not user.get("institute") and not user.get("department") and not user.get("organization"):
+            repo.set_user_role(user_id, "student", status="pending")
+            log.info(f"Понижен bootstrap-админ {user_id} до студента (убран из ADMIN_IDS)")
 
 
 @router.bot_started()
@@ -52,15 +61,6 @@ async def on_start(event: MessageCreated, context: BaseContext) -> None:
     name = _display_name(event.message.sender) if event.message.sender else None
     await _bootstrap(user_id, chat_id, name)
     await send_main_menu(user_id)
-
-
-@router.message_created(Command("id"))
-async def on_id(event: MessageCreated) -> None:
-    _, user_id = event.get_ids()
-    await event.message.answer(
-        f"Ваш MAX user_id: {user_id}\n\n"
-        "Передайте его администратору для добавления в систему."
-    )
 
 
 @router.message_created(Command("menu"))
