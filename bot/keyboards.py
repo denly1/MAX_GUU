@@ -65,23 +65,14 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
         kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
         
     elif role == "admin":
-        # Админ-панель
-        kb.row(CallbackButton(text="⚙️ Админ-панель", payload="apanel:main"))
-        # Управление пользователями
-        kb.row(CallbackButton(text="👥 Верификация", payload="ver:menu"))
-        # Управление контентом
-        kb.row(CallbackButton(text="🗂 Проекты", payload="tadm:menu"))
-        kb.row(CallbackButton(text="📥 Заявки", payload="apps:list"))
-        kb.row(CallbackButton(text="😎 Мемы", payload="meme:menu"))
-        # Коммуникация
-        kb.row(CallbackButton(text="📨 Рассылка", payload="mail:start"))
-        kb.row(CallbackButton(text="📞 Созвон", payload="call:start"))
-        # Отчёты и статистика
-        kb.row(CallbackButton(text="📊 Статистика", payload="stats"))
-        kb.row(CallbackButton(text="📥 Экспорт", payload="expch:run"))
-        # Информация
+        # У админа интерфейс как у студента + админ-панель
+        kb.row(CallbackButton(text="🎯 Выбор проекта", payload="task:menu"))
+        kb.row(CallbackButton(text="� Примеры отчётности", payload="templates"))
+        kb.row(CallbackButton(text="� Мой профиль", payload="profile"))
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
-        kb.row(CallbackButton(text="📋 Контакты", payload="admins"))
+        kb.row(CallbackButton(text="� Контакты", payload="admins"))
+        kb.row(CallbackButton(text="� Обратная связь", payload="fb:start"))
+        kb.row(CallbackButton(text="⚙️ Админ-панель", payload="apanel:main"))
     else:
         # Меню для незарегистрированных
         kb.row(CallbackButton(text="❓ FAQ", payload="faq"))

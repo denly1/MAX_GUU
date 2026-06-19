@@ -35,10 +35,22 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     # Главное меню админ-панели
     if not sub or sub == "main":
         kb = InlineKeyboardBuilder()
+        # Управление пользователями
+        kb.row(CallbackButton(text="👥 Верификация", payload="ver:menu"))
         kb.row(CallbackButton(text="👥 Управление администраторами", payload="apanel:admins"))
-        kb.row(CallbackButton(text="🔄 Переключение роли", payload="apanel:switch"))
-        kb.row(CallbackButton(text="👤 Просмотр пользователей", payload="apanel:users"))
+        kb.row(CallbackButton(text="� Просмотр пользователей", payload="apanel:users"))
+        kb.row(CallbackButton(text="�🔄 Переключение роли", payload="apanel:switch"))
+        # Управление контентом
+        kb.row(CallbackButton(text="� Проекты", payload="tadm:menu"))
+        kb.row(CallbackButton(text="📥 Заявки", payload="apps:list"))
+        kb.row(CallbackButton(text="😎 Мемы", payload="meme:menu"))
         kb.row(CallbackButton(text="📋 Управление контактами", payload="admins:manage"))
+        # Коммуникация
+        kb.row(CallbackButton(text="📨 Рассылка", payload="mail:start"))
+        kb.row(CallbackButton(text="📞 Созвон", payload="call:start"))
+        # Отчёты и статистика
+        kb.row(CallbackButton(text="📊 Статистика", payload="stats"))
+        kb.row(CallbackButton(text="📥 Экспорт", payload="expch:run"))
         kb.row(keyboards.back_button())
         
         await event.edit(
