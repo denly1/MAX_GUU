@@ -104,80 +104,80 @@ async def profile_cb(event: MessageCallback) -> None:
 
 
 @router.message_callback(CbPrefix("profile:edit"))
-async def profile_edit_menu(event: MessageCallback, context: BaseContext) -> None:
-    """Меню выбора поля для редактирования."""
-    user_id = event.callback.user.user_id
-    user = repo.get_user(user_id)
-    if not user:
-        await event.ack(notification="Пользователь не найден")
-        return
-    
-    kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="📝 Фамилия", payload="profile:edit:last_name"))
-    kb.row(CallbackButton(text="📝 Имя", payload="profile:edit:first_name"))
-    kb.row(CallbackButton(text="📝 Отчество", payload="profile:edit:patronymic"))
-    kb.row(CallbackButton(text="📞 Телефон", payload="profile:edit:phone"))
-    
-    if user["role"] == "student":
-        kb.row(CallbackButton(text="🏫 Институт", payload="profile:edit:institute"))
-        kb.row(CallbackButton(text="📚 Курс", payload="profile:edit:course"))
-        kb.row(CallbackButton(text="👥 Группа", payload="profile:edit:group_name"))
-    elif user["role"] == "teacher":
-        kb.row(CallbackButton(text="🏛 Кафедра", payload="profile:edit:department"))
-    elif user["role"] == "partner":
-        kb.row(CallbackButton(text="🏢 Организация", payload="profile:edit:organization"))
-    
-    kb.row(CallbackButton(text="🔙 Назад", payload="profile"))
-    
-    await event.edit(
-        text="✏️ Выберите, что хотите изменить:",
-        attachments=[kb.as_markup()],
-    )
-
-
-@router.message_callback(CbPrefix("profile:edit"))
-async def profile_edit_field(event: MessageCallback, context: BaseContext) -> None:
-    """Начинает редактирование выбранного поля."""
+async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
+    """Меню редактирования профиля или начало редактирования поля."""
     parts = keyboards.parse_cb(event.callback.payload)
-    if len(parts) < 3:
+    
+    # Если 2 части — показываем меню выбора поля
+    if len(parts) == 2:
+        user_id = event.callback.user.user_id
+        user = repo.get_user(user_id)
+        if not user:
+            await event.ack(notification="Пользователь не найден")
+            return
+        
+        kb = InlineKeyboardBuilder()
+        kb.row(CallbackButton(text="📝 Фамилия", payload="profile:edit:last_name"))
+        kb.row(CallbackButton(text="📝 Имя", payload="profile:edit:first_name"))
+        kb.row(CallbackButton(text="📝 Отчество", payload="profile:edit:patronymic"))
+        kb.row(CallbackButton(text="📞 Телефон", payload="profile:edit:phone"))
+        
+        if user["role"] == "student":
+            kb.row(CallbackButton(text="🏫 Институт", payload="profile:edit:institute"))
+            kb.row(CallbackButton(text="📚 Курс", payload="profile:edit:course"))
+            kb.row(CallbackButton(text="👥 Группа", payload="profile:edit:group_name"))
+        elif user["role"] == "teacher":
+            kb.row(CallbackButton(text="🏛 Кафедра", payload="profile:edit:department"))
+        elif user["role"] == "partner":
+            kb.row(CallbackButton(text="🏢 Организация", payload="profile:edit:organization"))
+        
+        kb.row(CallbackButton(text="🔙 Назад", payload="profile"))
+        
+        await event.edit(
+            text="✏️ Выберите, что хотите изменить:",
+            attachments=[kb.as_markup()],
+        )
         return
     
-    field = parts[2]
-    allowed_fields = {
-        "last_name", "first_name", "patronymic", "phone",
-        "institute", "course", "group_name", "department", "organization"
-    }
-    if field not in allowed_fields:
-        await event.ack(notification="Недопустимое поле")
+    # Если 3 части — начинаем редактировать конкретное поле
+    if len(parts) == 3:
+        field = parts[2]
+        allowed_fields = {
+            "last_name", "first_name", "patronymic", "phone",
+            "institute", "course", "group_name", "department", "organization"
+        }
+        if field not in allowed_fields:
+            await event.ack(notification="Недопустимое поле")
+            return
+        
+        field_names = {
+            "last_name": "фамилию",
+            "first_name": "имя",
+            "patronymic": "отчество",
+            "phone": "телефон",
+            "institute": "институт",
+            "course": "курс",
+            "group_name": "группу",
+            "department": "кафедру",
+            "organization": "организацию",
+        }
+        
+        await context.clear()
+        await context.update_data(edit_field=field)
+        await context.set_state(ProfileEdit.value)
+        
+        hints = {
+            "phone": "В формате 8 ххх-ххх хх хх",
+            "course": "1, 2, 3 или 4",
+            "institute": "ИОМ, ИМ, ИГУиП, ИЭФ или ИУПСиБК",
+        }
+        hint = hints.get(field, "")
+        
+        await event.edit(
+            text=f"Введите новое значение для {field_names[field]}{':' if hint else ''}\n{hint}",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
         return
-    
-    field_names = {
-        "last_name": "фамилию",
-        "first_name": "имя",
-        "patronymic": "отчество",
-        "phone": "телефон",
-        "institute": "институт",
-        "course": "курс",
-        "group_name": "группу",
-        "department": "кафедру",
-        "organization": "организацию",
-    }
-    
-    await context.clear()
-    await context.update_data(edit_field=field)
-    await context.set_state(ProfileEdit.value)
-    
-    hints = {
-        "phone": "В формате 8 ххх-ххх хх хх",
-        "course": "1, 2, 3 или 4",
-        "institute": "ИОМ, ИМ, ИГУиП, ИЭФ или ИУПСиБК",
-    }
-    hint = hints.get(field, "")
-    
-    await event.edit(
-        text=f"Введите новое значение для {field_names[field]}{':' if hint else ''}\n{hint}",
-        attachments=[keyboards.cancel_kb().as_markup()],
-    )
 
 
 @router.message_created(ProfileEdit.value, F.message.body.text)
