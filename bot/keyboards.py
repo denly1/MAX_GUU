@@ -65,14 +65,11 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
         kb.row(CallbackButton(text="Обратная связь", payload="fb:start"))
         
     elif role == "admin":
-        # У админа интерфейс как у студента + админ-панель
-        kb.row(CallbackButton(text="Выбор проекта", payload="task:menu"))
-        kb.row(CallbackButton(text="Примеры отчётности", payload="templates"))
-        kb.row(CallbackButton(text="Мой профиль", payload="profile"))
-        kb.row(CallbackButton(text="FAQ", payload="faq"))
-        kb.row(CallbackButton(text="Контакты", payload="admins"))
-        kb.row(CallbackButton(text="Обратная связь", payload="fb:start"))
-        kb.row(CallbackButton(text="Админ-панель", payload="apanel:main"))
+        # Функционал администратора согласно ТЗ (раздел 3.3)
+        kb.row(CallbackButton(text="📋 Админ-панель", payload="apanel:main"))
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="📞 Контакты", payload="admins"))
+        kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
     else:
         # Меню для незарегистрированных
         kb.row(CallbackButton(text="FAQ", payload="faq"))
