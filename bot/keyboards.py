@@ -230,7 +230,7 @@ def task_admin_actions(task_id: int, active: int) -> InlineKeyboardBuilder:
     toggle = "Деактивировать" if active else "Активировать"
     kb.row(CallbackButton(text=f"{toggle}",
                           payload=f"tadm:toggle:{task_id}"))
-    kb.row(CallbackButton(text="Удалить Удалить", payload=f"tadm:del:{task_id}"))
+    kb.row(CallbackButton(text="❌ Удалить", payload=f"tadm:del:{task_id}"))
     kb.row(back_button("tadm:list"))
     return kb
 
@@ -297,7 +297,7 @@ def admin_contacts_manage(contacts: Iterable[sqlite3.Row]) -> InlineKeyboardBuil
 def admin_contact_edit_menu(contact_id: int) -> InlineKeyboardBuilder:
     """Меню редактирования контакта."""
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Удалить Удалить контакт", 
+    kb.row(CallbackButton(text="❌ Удалить контакт", 
                           payload=f"admins:delete:{contact_id}"))
     kb.row(back_button("admins:manage"))
     return kb

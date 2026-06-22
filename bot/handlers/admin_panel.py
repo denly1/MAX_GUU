@@ -36,21 +36,21 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     if not sub or sub == "main":
         kb = InlineKeyboardBuilder()
         # Управление пользователями
-        kb.row(CallbackButton(text="Верификация", payload="ver:menu"))
-        kb.row(CallbackButton(text="Управление администраторами", payload="apanel:admins"))
-        kb.row(CallbackButton(text="� Просмотр пользователей", payload="apanel:users"))
-        kb.row(CallbackButton(text="�Переключение роли", payload="apanel:switch"))
+        kb.row(CallbackButton(text="✓ Верификация", payload="ver:menu"))
+        kb.row(CallbackButton(text="👤 Управление администраторами", payload="apanel:admins"))
+        kb.row(CallbackButton(text="👥 Просмотр пользователей", payload="apanel:users"))
+        kb.row(CallbackButton(text="🔄 Переключение роли", payload="apanel:switch"))
         # Управление контентом
-        kb.row(CallbackButton(text="� Проекты", payload="tadm:menu"))
-        kb.row(CallbackButton(text="Заявки", payload="apps:list"))
-        kb.row(CallbackButton(text="Мемы", payload="meme:menu"))
-        kb.row(CallbackButton(text="Управление контактами", payload="admins:manage"))
+        kb.row(CallbackButton(text="📋 Проекты", payload="tadm:menu"))
+        kb.row(CallbackButton(text="📝 Заявки", payload="apps:list"))
+        kb.row(CallbackButton(text="🎭 Мемы", payload="meme:menu"))
+        kb.row(CallbackButton(text="📞 Управление контактами", payload="admins:manage"))
         # Коммуникация
-        kb.row(CallbackButton(text="Рассылка", payload="mail:start"))
-        kb.row(CallbackButton(text="Созвон", payload="call:start"))
+        kb.row(CallbackButton(text="📢 Рассылка", payload="mail:start"))
+        kb.row(CallbackButton(text="📞 Созвон", payload="call:start"))
         # Отчёты и статистика
-        kb.row(CallbackButton(text="Статистика", payload="stats"))
-        kb.row(CallbackButton(text="Экспорт", payload="expch:run"))
+        kb.row(CallbackButton(text="📊 Статистика", payload="stats"))
+        kb.row(CallbackButton(text="📥 Экспорт", payload="expch:run"))
         kb.row(keyboards.back_button())
         
         await event.edit(
@@ -71,14 +71,14 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
             text += f"• {fio} (ID: {admin['user_id']})\n"
         
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="Добавить администратора", payload="apanel:add_admin"))
+        kb.row(CallbackButton(text="➕ Добавить администратора", payload="apanel:add_admin"))
         for admin in admins:
             fio = f"{admin['last_name']} {admin['first_name']}" if admin['last_name'] else admin['display_name']
             kb.row(CallbackButton(
-                text=f"Удалить {fio[:30]}",
+                text=f"❌ Удалить {fio[:30]}",
                 payload=f"apanel:remove_admin:{admin['user_id']}"
             ))
-        kb.row(CallbackButton(text="Назад", payload="apanel:main"))
+        kb.row(CallbackButton(text="◀️ Назад", payload="apanel:main"))
         
         await event.edit(text=text, attachments=[kb.as_markup()])
         return
@@ -130,14 +130,14 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
             text += f"• {fio} (ID: {admin['user_id']})\n"
         
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="Добавить администратора", payload="apanel:add_admin"))
+        kb.row(CallbackButton(text="➕ Добавить администратора", payload="apanel:add_admin"))
         for admin in admins:
             fio = f"{admin['last_name']} {admin['first_name']}" if admin['last_name'] else admin['display_name']
             kb.row(CallbackButton(
-                text=f"Удалить {fio[:30]}",
+                text=f"❌ Удалить {fio[:30]}",
                 payload=f"apanel:remove_admin:{admin['user_id']}"
             ))
-        kb.row(CallbackButton(text="Назад", payload="apanel:main"))
+        kb.row(CallbackButton(text="◀️ Назад", payload="apanel:main"))
         
         await event.edit(text=text, attachments=[kb.as_markup()])
         return
@@ -145,11 +145,11 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     # Переключение роли
     if sub == "switch":
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="Студент", payload="apanel:role:student"))
-        kb.row(CallbackButton(text="Преподаватель", payload="apanel:role:teacher"))
-        kb.row(CallbackButton(text="Партнер", payload="apanel:role:partner"))
-        kb.row(CallbackButton(text="Администратор", payload="apanel:role:admin"))
-        kb.row(CallbackButton(text="Назад", payload="apanel:main"))
+        kb.row(CallbackButton(text="🎓 Студент", payload="apanel:role:student"))
+        kb.row(CallbackButton(text="👨‍🏫 Преподаватель", payload="apanel:role:teacher"))
+        kb.row(CallbackButton(text="🤝 Партнер", payload="apanel:role:partner"))
+        kb.row(CallbackButton(text="👤 Администратор", payload="apanel:role:admin"))
+        kb.row(CallbackButton(text="◀️ Назад", payload="apanel:main"))
         
         current_user = repo.get_user(user_id)
         current_role = current_user['role'] if current_user else 'admin'
@@ -202,16 +202,16 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         
         for role, role_users in by_role.items():
             role_labels = {
-                'student': 'Студенты',
+                'student': '🎓 Студенты',
                 'teacher': '👨‍🏫 Преподаватели',
-                'partner': 'Партнеры',
-                'admin': 'Администраторы',
+                'partner': '🤝 Партнеры',
+                'admin': '👤 Администраторы',
                 'Не указана': '❓ Без роли'
             }
             text += f"\n**{role_labels.get(role, role)}:** {len(role_users)}\n"
         
         kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="Назад", payload="apanel:main"))
+        kb.row(CallbackButton(text="◀️ Назад", payload="apanel:main"))
         
         await event.edit(text=text, attachments=[kb.as_markup()])
         return
