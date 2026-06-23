@@ -33,6 +33,6 @@ all_routers = [
     task_admin_router,
     mailings_router,
     applications_router,
-    memes_router,
     feedback_router,
+    memes_router,
 ]
