@@ -13,7 +13,7 @@ from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from .. import keyboards, repo, texts, validators
 from ..common_ui import notify_admins_with_markup, require_role
 from ..filters import CbPrefix
-from ..states import AskQuestion, FAQEdit
+from ..states import AskQuestion, FAQEdit, FAQUpdate
 
 router = Router(router_id="faq")
 
@@ -86,6 +86,26 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
         await event.edit(
             text="FAQ удален.\n\nУправление FAQ:",
             attachments=[keyboards.faq_manage(faqs).as_markup()],
+        )
+        return
+    
+    # Редактировать FAQ
+    if parts[1] == "edit":
+        user_id = event.callback.user.user_id
+        if not require_role(user_id, "admin"):
+            await event.ack(notification="Доступно только администраторам")
+            return
+        faq_id = int(parts[2])
+        faq = repo.get_faq(faq_id)
+        if not faq:
+            await event.ack(notification="FAQ не найден")
+            return
+        await context.clear()
+        await context.update_data(edit_faq_id=faq_id)
+        await context.set_state(FAQUpdate.question)
+        await event.edit(
+            text=f"Редактирование FAQ.\n\nТекущий вопрос:\n{faq['question']}\n\nВведите новый вопрос (или «-», чтобы оставить без изменений):",
+            attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
 
@@ -168,6 +188,48 @@ async def faq_answer(event: MessageCreated, context: BaseContext) -> None:
     
     await event.message.answer(
         f"FAQ добавлен!\n\n{data['question']}\n\n{answer}",
+        attachments=[keyboards.main_menu_kb().as_markup()],
+    )
+
+
+@router.message_created(FAQUpdate.question, F.message.body.text)
+async def faq_update_question(event: MessageCreated, context: BaseContext) -> None:
+    question = (event.message.body.text or "").strip()
+    data = await context.get_data()
+    faq_id = data.get("edit_faq_id")
+    if not faq_id:
+        await context.clear()
+        return
+    if question != "-":
+        await context.update_data(new_question=question)
+    await context.set_state(FAQUpdate.answer)
+    faq = repo.get_faq(faq_id)
+    await event.message.answer(
+        f"Текущий ответ:\n{faq['answer']}\n\nВведите новый ответ (или «-», чтобы оставить без изменений):"
+    )
+
+
+@router.message_created(FAQUpdate.answer, F.message.body.text)
+async def faq_update_answer(event: MessageCreated, context: BaseContext) -> None:
+    answer = (event.message.body.text or "").strip()
+    data = await context.get_data()
+    faq_id = data.get("edit_faq_id")
+    if not faq_id:
+        await context.clear()
+        return
+    
+    update_data: dict = {}
+    if data.get("new_question"):
+        update_data["question"] = data["new_question"]
+    if answer != "-":
+        update_data["answer"] = answer
+    
+    repo.update_faq(faq_id, **update_data)
+    await context.clear()
+    
+    faq = repo.get_faq(faq_id)
+    await event.message.answer(
+        f"FAQ обновлён!\n\n{faq['question']}\n\n{faq['answer']}",
         attachments=[keyboards.main_menu_kb().as_markup()],
     )
 

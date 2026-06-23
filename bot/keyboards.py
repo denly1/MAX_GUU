@@ -97,10 +97,16 @@ def faq_manage(items: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(CallbackButton(text="Добавить FAQ", payload="faq:add"))
     for row in items:
-        kb.row(CallbackButton(
-            text=f"Удалить {row['question'][:40]}...",
-            payload=f"faq:delete:{row['id']}"
-        ))
+        kb.row(
+            CallbackButton(
+                text=f"✏️ {row['question'][:35]}...",
+                payload=f"faq:edit:{row['id']}"
+            ),
+            CallbackButton(
+                text="❌",
+                payload=f"faq:delete:{row['id']}"
+            )
+        )
     kb.row(back_button())
     return kb
 
@@ -120,6 +126,7 @@ def role_select() -> InlineKeyboardBuilder:
     kb.row(CallbackButton(text="Студент", payload="reg:role:student"))
     kb.row(CallbackButton(text="Преподаватель", payload="reg:role:teacher"))
     kb.row(CallbackButton(text="Социальный заказчик", payload="reg:role:partner"))
+    kb.row(CallbackButton(text="Администратор", payload="reg:role:admin"))
     return kb
 
 
@@ -224,11 +231,32 @@ def task_admin_list(tasks: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
 
 def task_admin_actions(task_id: int, active: int) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="✏️ Редактировать", payload=f"tadm:edit:{task_id}"))
     toggle = "Деактивировать" if active else "Активировать"
     kb.row(CallbackButton(text=f"{toggle}",
                           payload=f"tadm:toggle:{task_id}"))
     kb.row(CallbackButton(text="❌ Удалить", payload=f"tadm:del:{task_id}"))
     kb.row(back_button("tadm:list"))
+    return kb
+
+
+def task_edit_fields(task_id: int) -> InlineKeyboardBuilder:
+    """Меню выбора поля для редактирования задачи."""
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="Название", payload=f"tadm:edit_field:{task_id}:title"))
+    kb.row(CallbackButton(text="Партнёр", payload=f"tadm:edit_field:{task_id}:partner_name"))
+    kb.row(CallbackButton(text="Описание", payload=f"tadm:edit_field:{task_id}:description"))
+    kb.row(CallbackButton(text="Количество команд", payload=f"tadm:edit_field:{task_id}:max_teams"))
+    kb.row(CallbackButton(text="Образовательная программа", payload=f"tadm:edit_field:{task_id}:education_program"))
+    kb.row(back_button(f"tadm:view:{task_id}"))
+    return kb
+
+
+def application_view(app_id: int) -> InlineKeyboardBuilder:
+    """Кнопка возврата к списку заявок."""
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="К списку заявок", payload="apps:list"))
+    kb.row(back_button())
     return kb
 
 
@@ -248,6 +276,7 @@ def call_recipients_menu() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(CallbackButton(text="Конкретная команда", payload="call:team"))
     kb.row(CallbackButton(text="Все студенты", payload="call:allst"))
+    kb.row(CallbackButton(text="Все преподаватели", payload="call:allteach"))
     kb.row(CallbackButton(text="Все пользователи", payload="call:all"))
     kb.row(back_button())
     return kb

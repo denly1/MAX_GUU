@@ -23,6 +23,11 @@ async def reg_cb(event: MessageCallback, context: BaseContext) -> None:
 
     # reg:start — приветствие + выбор роли
     if len(parts) == 2 and parts[1] == "start":
+        # Если пользователь уже зарегистрирован и подтверждён — показываем меню
+        if repo.is_verified(user_id):
+            await event.ack(notification="Вы уже зарегистрированы")
+            await send_main_menu(user_id)
+            return
         await context.clear()
         await context.set_state(Reg.role)
         await event.edit(
@@ -36,8 +41,11 @@ async def reg_cb(event: MessageCallback, context: BaseContext) -> None:
         role = parts[2]
         await context.update_data(role=role)
         await context.set_state(Reg.last_name)
+        prompt = "Укажите вашу фамилию:"
+        if role == "admin":
+            prompt = "Роль: Администратор\n\nУкажите вашу фамилию:"
         await event.edit(
-            text=f"Роль: {texts.ROLE_LABELS.get(role, role)}\n\nУкажите вашу фамилию:",
+            text=f"Роль: {texts.ROLE_LABELS.get(role, role)}\n\n{prompt}",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
@@ -110,6 +118,9 @@ async def reg_patronymic(event: MessageCreated, context: BaseContext) -> None:
         await event.message.answer(
             "Укажите полное юридическое название организации, которую вы представляете:"
         )
+    elif role == "admin":
+        await context.set_state(Reg.phone)
+        await event.message.answer("Укажите ваш номер телефона в формате 8 ххх-ххх хх хх:")
 
 
 # ── Студент: группа ────────────────────────────────────────────────────────
@@ -177,10 +188,21 @@ async def reg_phone(event: MessageCreated, context: BaseContext) -> None:
     elif role == "partner":
         fields.update(organization=data.get("organization"))
 
-    repo.save_registration(user_id, role, fields, status="pending")
-    await context.clear()
+    # Администратор регистрируется сразу подтверждённым
+    if role == "admin":
+        repo.save_registration(user_id, role, fields, status="verified")
+        repo.set_was_admin(user_id, 1)
+        await context.clear()
+        await event.message.answer(texts.REGISTRATION_DONE_ADMIN)
+    else:
+        repo.save_registration(user_id, role, fields, status="pending")
+        await context.clear()
+        await event.message.answer(texts.REGISTRATION_DONE)
 
-    await event.message.answer(texts.REGISTRATION_DONE)
+    # Не уведомляем админов о регистрации нового админа (это создаёт петлю)
+    if role == "admin":
+        await send_main_menu(user_id)
+        return
 
     # Уведомление администраторам с кнопками верификации.
     fio = " ".join(filter(None, [fields["last_name"], fields["first_name"],
@@ -193,6 +215,10 @@ async def reg_phone(event: MessageCreated, context: BaseContext) -> None:
         extra = f"Кафедра: {fields['department']}"
     elif role == "partner":
         extra = f"Организация: {fields['organization']}"
+
+    # Не уведомляем о регистрации администратора (он уже подтверждён)
+    if role == "admin":
+        return
 
     await notify_admins(
         text=(

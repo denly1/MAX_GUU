@@ -215,25 +215,78 @@ async def a_contact_telegram(event: MessageCreated, context: BaseContext) -> Non
     )
 
 
+def _format_application(a: dict) -> str:
+    """Форматирует заявку для полного просмотра."""
+    lines = [
+        f"📥 Заявка на проект #{a['id']}",
+        "",
+        f"**Название проекта:** {a['project_name']}",
+        f"**Организация:** {a['org_name']}",
+        f"**Источник задачи:** {a['source']}",
+    ]
+    if a.get('department'):
+        lines.append(f"**Кафедра:** {a['department']}")
+    lines.extend([
+        "",
+        f"**Описание:** {a['description']}",
+        "",
+        f"**Целевая аудитория:** {a['target_audience']}",
+        f"**Количество благополучателей:** {a['beneficiaries_count']}",
+        f"**Механизм действий:** {a['mechanism']}",
+        f"**Желаемый продукт:** {a['desired_product']}",
+        f"**Навыки студентов:** {a['skills']}",
+    ])
+    if a.get('study_directions'):
+        lines.append(f"**Направления обучения:** {a['study_directions']}")
+    if a.get('dobro_link'):
+        lines.append(f"**Ссылка на Добро.РФ:** {a['dobro_link']}")
+    lines.extend([
+        "",
+        f"**Период:** {a['period_start']} — {a['period_end']}",
+        "",
+        f"**Контактное лицо:** {a['contact_fio']}",
+        f"**Телефон:** {a['contact_phone']}",
+    ])
+    if a.get('contact_telegram'):
+        lines.append(f"**Telegram:** {a['contact_telegram']}")
+    lines.append(f"**Статус:** {a['status']}")
+    lines.append(f"**Дата подачи:** {a['created_at'][:10] if a['created_at'] else '—'}")
+    return "\n".join(lines)
+
+
 # ── Просмотр заявок администратором ────────────────────────────────────────
 @router.message_callback(CbPrefix("apps"))
 async def apps_list_cb(event: MessageCallback) -> None:
     if not repo.is_admin(event.callback.user.user_id):
         await event.ack(notification="Недостаточно прав")
         return
+    parts = keyboards.parse_cb(event.callback.payload)
+    sub = parts[1] if len(parts) > 1 else ""
+
+    if sub == "view" and len(parts) > 2:
+        app_id = int(parts[2])
+        a = repo.get_application(app_id)
+        if not a:
+            await event.ack(notification="Заявка не найдена")
+            return
+        text = _format_application(dict(a))
+        await event.edit(text=text, attachments=[keyboards.application_view(app_id).as_markup()])
+        return
+
     apps = repo.list_applications()
     if not apps:
         text = "Заявок пока нет."
-    else:
-        lines = ["📥 Заявки на проекты:\n"]
-        for a in apps[:30]:
-            lines.append(
-                f"#{a['id']} {a['project_name']} — {a['org_name']}\n"
-                f"  Источник: {a['source']}\n"
-                f"  Контакт: {a['contact_fio']}, {a['contact_phone']}"
-                + (f", {a['contact_telegram']}" if a['contact_telegram'] else "")
-            )
-        text = "\n\n".join(lines)
+        kb = InlineKeyboardBuilder()
+        kb.row(keyboards.back_button())
+        await event.edit(text=text, attachments=[kb.as_markup()])
+        return
+
+    text = "📥 Заявки на проекты:\n\nНажмите на заявку, чтобы посмотреть подробности."
     kb = InlineKeyboardBuilder()
+    for a in apps[:30]:
+        kb.row(CallbackButton(
+            text=f"#{a['id']} {a['project_name']} — {a['org_name']}",
+            payload=f"apps:view:{a['id']}"
+        ))
     kb.row(keyboards.back_button())
     await event.edit(text=text, attachments=[kb.as_markup()])

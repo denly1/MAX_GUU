@@ -106,6 +106,42 @@ async def tadm_cb(event: MessageCallback, context: BaseContext) -> None:
         await _send_file(user_id, path, "📊 Выгрузка списка задач:")
         return
 
+    if sub == "edit":
+        task_id = int(parts[2])
+        task = repo.get_task(task_id)
+        if not task:
+            await event.ack(notification="Задача не найдена")
+            return
+        await event.edit(
+            text=f"Редактирование задачи «{task['title']}».\nВыберите поле:",
+            attachments=[keyboards.task_edit_fields(task_id).as_markup()],
+        )
+        return
+
+    if sub == "edit_field":
+        task_id = int(parts[2])
+        field = parts[3]
+        allowed = {"title", "partner_name", "description", "max_teams", "education_program"}
+        if field not in allowed:
+            await event.ack(notification="Недопустимое поле")
+            return
+        await context.clear()
+        await context.update_data(edit_task_id=task_id, edit_field=field)
+        await context.set_state(TaskAdmin.edit_value)
+
+        field_prompts = {
+            "title": "Введите новое название проекта:",
+            "partner_name": "Введите новое наименование партнёра:",
+            "description": "Введите новое описание:",
+            "max_teams": "Введите новое максимальное количество команд (число):",
+            "education_program": "Введите новую образовательную программу (или «-» чтобы удалить):",
+        }
+        await event.edit(
+            text=field_prompts[field],
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
 
 # ── Выгрузка выбора проектов (раздел 2.5) ──────────────────────────────────
 @router.message_callback(CbPrefix("expch"))
@@ -159,6 +195,41 @@ async def ta_max_teams(event: MessageCreated, context: BaseContext) -> None:
         "(или отправьте «-», чтобы пропустить):")
 
 
+@router.message_created(TaskAdmin.edit_value, F.message.body.text)
+async def ta_edit_value(event: MessageCreated, context: BaseContext) -> None:
+    """Сохраняет отредактированное поле задачи."""
+    data = await context.get_data()
+    task_id = data.get("edit_task_id")
+    field = data.get("edit_field")
+    if not task_id or not field:
+        await context.clear()
+        return
+
+    raw = (event.message.body.text or "").strip()
+    if field == "max_teams":
+        ok, value = validators.validate_int(raw)
+        if not ok or value < 1:
+            await event.message.answer("Введите целое число больше 0:")
+            return
+    elif field == "education_program":
+        value = None if raw == "-" else raw
+    else:
+        value = raw
+
+    if not value and field != "education_program":
+        await event.message.answer("Значение не может быть пустым. Попробуйте ещё раз:")
+        return
+
+    repo.update_task(task_id, **{field: value})
+    await context.clear()
+
+    task = repo.get_task(task_id)
+    await event.message.answer(
+        f"✅ Задача «{task['title']}» обновлена.",
+        attachments=[keyboards.task_admin_actions(task["id"], task["active"]).as_markup()],
+    )
+
+
 @router.message_created(TaskAdmin.program, F.message.body.text)
 async def ta_program(event: MessageCreated, context: BaseContext) -> None:
     program = (event.message.body.text or "").strip()
@@ -178,7 +249,7 @@ async def ta_program(event: MessageCreated, context: BaseContext) -> None:
         f"✅ Задача «{data['title']}» добавлена (№{number}).",
         attachments=[keyboards.task_admin_menu().as_markup()],
     )
-    
+
     # Уведомляем всех студентов о новом проекте
     await notify_students(
         text=(

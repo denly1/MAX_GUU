@@ -67,6 +67,7 @@ class TaskAdmin(StatesGroup):
     description = State()
     max_teams = State()
     program = State()
+    edit_field = State()
     edit_value = State()
 
 
@@ -124,7 +125,14 @@ class AdminContactEdit(StatesGroup):
 
 
 class FAQEdit(StatesGroup):
-    """Добавление/редактирование FAQ."""
+    """Добавление FAQ."""
+
+    question = State()
+    answer = State()
+
+
+class FAQUpdate(StatesGroup):
+    """Редактирование существующего FAQ."""
 
     question = State()
     answer = State()

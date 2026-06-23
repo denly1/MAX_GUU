@@ -80,6 +80,14 @@ def update_user_field(user_id: int, field: str, value: str | None) -> None:
     conn.commit()
 
 
+def set_was_admin(user_id: int, was_admin: int = 1) -> None:
+    """Устанавливает флаг was_admin у пользователя."""
+    conn = _c()
+    conn.execute("UPDATE users SET was_admin = ? WHERE user_id = ?",
+                 (was_admin, user_id))
+    conn.commit()
+
+
 def is_admin(user_id: int) -> bool:
     row = get_user(user_id)
     return bool(row and row["role"] == "admin" and row["status"] == "verified")
@@ -130,6 +138,12 @@ def list_students() -> list[sqlite3.Row]:
     ).fetchall()
 
 
+def list_teachers() -> list[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM users WHERE role = 'teacher' AND status = 'verified'"
+    ).fetchall()
+
+
 def list_student_user_ids() -> list[int]:
     """Возвращает user_id всех подтверждённых студентов."""
     rows = _c().execute(
@@ -162,6 +176,24 @@ def add_faq(question: str, answer: str) -> int:
     )
     conn.commit()
     return cur.lastrowid
+
+
+def update_faq(faq_id: int, question: str | None = None, answer: str | None = None) -> None:
+    """Обновляет существующий FAQ."""
+    conn = _c()
+    fields: dict[str, Any] = {}
+    if question is not None:
+        fields["question"] = question
+    if answer is not None:
+        fields["answer"] = answer
+    if not fields:
+        return
+    placeholders = ", ".join(f"{k} = ?" for k in fields)
+    conn.execute(
+        f"UPDATE faq SET {placeholders} WHERE id = ?",
+        (*fields.values(), faq_id),
+    )
+    conn.commit()
 
 
 def delete_faq(faq_id: int) -> None:
@@ -573,6 +605,12 @@ def add_application(user_id: int, data: dict[str, Any]) -> int:
     )
     conn.commit()
     return cur.lastrowid
+
+
+def get_application(app_id: int) -> Optional[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM applications WHERE id = ?", (app_id,)
+    ).fetchone()
 
 
 def list_applications() -> list[sqlite3.Row]:

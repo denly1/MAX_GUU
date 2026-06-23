@@ -177,9 +177,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         
         # Сохраняем флаг в БД, что пользователь был админом
         repo.set_user_role(user_id, new_role, status="verified")
-        conn = repo._c()
-        conn.execute("UPDATE users SET was_admin = 1 WHERE user_id = ?", (user_id,))
-        conn.commit()
+        repo.set_was_admin(user_id, 1)
         
         await event.ack(notification=f"Роль изменена на {new_role}")
         await send_main_menu(user_id, greeting=f"🔄 Вы переключились на роль: {new_role}\n\nИспользуйте /admin для возврата в админ-панель")

@@ -112,6 +112,12 @@ async def call_cb(event: MessageCallback, context: BaseContext) -> None:
         await _ask_call_text(event, context)
         return
 
+    if sub == "allteach":
+        recipients = [u["user_id"] for u in repo.list_teachers()]
+        await context.update_data(recipients=recipients, audience="все преподаватели")
+        await _ask_call_text(event, context)
+        return
+
     if sub == "all":
         recipients = [u["user_id"] for u in repo.list_all_active_users()]
         await context.update_data(recipients=recipients, audience="все пользователи")
