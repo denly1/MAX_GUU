@@ -5,6 +5,7 @@ from __future__ import annotations
 from maxapi import F
 from maxapi.context.base import BaseContext
 from maxapi.dispatcher import Router
+from maxapi.filters.command import Command
 from maxapi.types.attachments.buttons.callback_button import CallbackButton
 from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
@@ -245,7 +246,7 @@ async def add_admin_id(event: MessageCreated, context: BaseContext) -> None:
 
 
 # ── Команда для возврата в админ-режим ─────────────────────────────────────
-@router.message_created(F.message.body.text == "/admin")
+@router.message_created(Command("admin"))
 async def admin_command(event: MessageCreated, context: BaseContext) -> None:
     user_id = event.message.sender.user_id if event.message.sender else None
     if not user_id:
@@ -268,4 +269,5 @@ async def admin_command(event: MessageCreated, context: BaseContext) -> None:
         # Уже админ
         await send_main_menu(user_id)
     else:
+        # Обычный пользователь не может стать админом
         await event.message.answer("У вас нет прав администратора")
