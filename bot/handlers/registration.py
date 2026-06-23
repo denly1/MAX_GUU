@@ -9,7 +9,7 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 
 from .. import keyboards, repo, texts, validators
-from ..common_ui import notify_admins
+from ..common_ui import notify_admins, send_main_menu
 from ..filters import CbPrefix
 from ..states import Reg
 
@@ -41,11 +41,8 @@ async def reg_cb(event: MessageCallback, context: BaseContext) -> None:
         role = parts[2]
         await context.update_data(role=role)
         await context.set_state(Reg.last_name)
-        prompt = "Укажите вашу фамилию:"
-        if role == "admin":
-            prompt = "Роль: Администратор\n\nУкажите вашу фамилию:"
         await event.edit(
-            text=f"Роль: {texts.ROLE_LABELS.get(role, role)}\n\n{prompt}",
+            text=f"Роль: {texts.ROLE_LABELS.get(role, role)}\n\nУкажите вашу фамилию:",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
