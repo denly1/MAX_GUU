@@ -101,6 +101,7 @@ async def profile_cb(event: MessageCallback) -> None:
     kb.row(keyboards.back_button())
     
     await event.edit(text=text, attachments=[kb.as_markup()])
+    await event.ack()
 
 
 @router.message_callback(CbPrefix("profile:edit"))
@@ -137,6 +138,7 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
             text="✏️ Выберите, что хотите изменить:",
             attachments=[kb.as_markup()],
         )
+        await event.ack()
         return
     
     # Если 3 части — начинаем редактировать конкретное поле
@@ -177,6 +179,7 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
             text=f"Введите новое значение для {field_names[field]}{':' if hint else ''}\n{hint}",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
+        await event.ack()
         return
 
 
@@ -207,6 +210,11 @@ async def profile_edit_value(event: MessageCreated, context: BaseContext) -> Non
             await event.message.answer("Выберите институт из списка: ИОМ, ИМ, ИГУиП, ИЭФ, ИУПСиБК")
             return
         value = raw_value
+    elif field in ("last_name", "first_name", "patronymic"):
+        ok, value = validators.validate_name(raw_value)
+        if not ok:
+            await event.message.answer(validators.name_error(field_names.get(field, field)))
+            return
     else:
         value = raw_value
     

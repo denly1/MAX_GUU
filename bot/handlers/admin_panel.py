@@ -175,11 +175,11 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     if sub == "role":
         new_role = parts[2]
         
-        # Сохраняем текущую роль в контексте (чтобы можно было вернуться)
-        await context.update_data(original_role="admin")
-        
-        # Временно меняем роль
+        # Сохраняем флаг в БД, что пользователь был админом
         repo.set_user_role(user_id, new_role, status="verified")
+        conn = repo._c()
+        conn.execute("UPDATE users SET was_admin = 1 WHERE user_id = ?", (user_id,))
+        conn.commit()
         
         await event.ack(notification=f"Роль изменена на {new_role}")
         await send_main_menu(user_id, greeting=f"🔄 Вы переключились на роль: {new_role}\n\nИспользуйте /admin для возврата в админ-панель")
@@ -269,12 +269,15 @@ async def admin_command(event: MessageCreated, context: BaseContext) -> None:
     if not user_id:
         return
     
-    # Проверяем, есть ли сохранённая роль
-    data = await context.get_data()
-    original_role = data.get('original_role')
+    # Проверяем, может ли пользователь вернуться в админ-режим:
+    # 1. Пользователь в ADMIN_IDS (bootstrap-админ)
+    # 2. В БД стоит флаг was_admin (переключился через админ-панель)
+    can_return_admin = user_id in config.ADMIN_IDS
+    if not can_return_admin:
+        user = repo.get_user(user_id)
+        can_return_admin = bool(user and user.get("was_admin"))
     
-    if original_role == "admin":
-        # Возвращаем роль админа
+    if can_return_admin:
         repo.set_user_role(user_id, "admin", status="verified")
         await context.clear()
         await event.message.answer("Вы вернулись в режим администратора")

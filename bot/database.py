@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS users (
     organization TEXT,
     phone        TEXT,
     display_name TEXT,
+    was_admin    INTEGER DEFAULT 0,
     created_at   TEXT DEFAULT (datetime('now'))
 );
 
