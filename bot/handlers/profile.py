@@ -29,6 +29,7 @@ async def profile_cb(event: MessageCallback) -> None:
             text="❌ Вы не зарегистрированы в системе.",
             attachments=[keyboards.back_button().as_markup()],
         )
+        await event.ack()
         return
     
     # Формируем текст профиля
@@ -195,6 +196,18 @@ async def profile_edit_value(event: MessageCreated, context: BaseContext) -> Non
     _, user_id = event.get_ids()
     raw_value = (event.message.body.text or "").strip()
     
+    field_names = {
+        "last_name": "фамилию",
+        "first_name": "имя",
+        "patronymic": "отчество",
+        "phone": "телефон",
+        "institute": "институт",
+        "course": "курс",
+        "group_name": "группу",
+        "department": "кафедру",
+        "organization": "организацию",
+    }
+
     if field == "phone":
         ok, value = validators.validate_phone(raw_value)
         if not ok:

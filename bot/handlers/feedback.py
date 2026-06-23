@@ -86,6 +86,7 @@ async def fb_cb(event: MessageCallback, context: BaseContext) -> None:
               "оно будет направлено администратору, и он вам ответит:"),
         attachments=[keyboards.cancel_kb().as_markup()],
     )
+    await event.ack()
 
 
 @router.message_created(Feedback.text, F.message.body.text)

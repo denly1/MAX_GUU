@@ -27,6 +27,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
             text="Часто задаваемые вопросы.\nВыберите вопрос:",
             attachments=[keyboards.faq_list(repo.list_faq()).as_markup()],
         )
+        await event.ack()
         return
 
     if parts[1] == "q":
@@ -36,6 +37,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
                 text=f"{faq['question']}\n\n{faq['answer']}",
                 attachments=[keyboards.faq_back().as_markup()],
             )
+            await event.ack()
         return
 
     if parts[1] == "ask":
@@ -45,6 +47,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
             text="Укажите ваш вопрос:",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
+        await event.ack()
         return
     
     # Управление FAQ (только для админов)
@@ -58,6 +61,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
             text="Управление FAQ:",
             attachments=[keyboards.faq_manage(faqs).as_markup()],
         )
+        await event.ack()
         return
     
     # Добавить FAQ
@@ -72,6 +76,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
             text="Добавление FAQ\n\nВведите вопрос:",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
+        await event.ack()
         return
     
     # Удалить FAQ
@@ -87,6 +92,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
             text="FAQ удален.\n\nУправление FAQ:",
             attachments=[keyboards.faq_manage(faqs).as_markup()],
         )
+        await event.ack()
         return
     
     # Редактировать FAQ
@@ -107,6 +113,7 @@ async def faq_cb(event: MessageCallback, context: BaseContext) -> None:
             text=f"Редактирование FAQ.\n\nТекущий вопрос:\n{faq['question']}\n\nВведите новый вопрос (или «-», чтобы оставить без изменений):",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
+        await event.ack()
         return
 
 
