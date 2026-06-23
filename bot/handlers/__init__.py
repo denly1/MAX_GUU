@@ -32,7 +32,7 @@ all_routers = [
     tasks_router,
     task_admin_router,
     mailings_router,
-    feedback_router,
     applications_router,
     memes_router,
+    feedback_router,
 ]

@@ -35,32 +35,59 @@ async def _broadcast(event_id: int, recipients: list[int], text: str) -> int:
     return sent
 
 
-# ── Приглашение на мероприятие (всем пользователям) ────────────────────────
+# ── Приглашение на мероприятие ──────────────────────────────────────────────
 @router.message_callback(CbPrefix("mail"))
 async def mail_cb(event: MessageCallback, context: BaseContext) -> None:
     if not _guard(event.callback.user.user_id):
         await event.ack(notification="Недостаточно прав")
         return
-    await context.clear()
-    await context.set_state(Mailing.text)
-    await event.edit(
-        text=("📨 Рассылка приглашения на мероприятие.\n\n"
-              "Отправьте текст приглашения (его получат все пользователи "
-              "с кнопками подтверждения участия):"),
-        attachments=[keyboards.cancel_kb().as_markup()],
-    )
+    parts = keyboards.parse_cb(event.callback.payload)
+    sub = parts[1] if len(parts) > 1 else ""
+
+    if sub == "start":
+        await context.clear()
+        await event.edit(
+            text="📨 Выберите аудиторию рассылки:",
+            attachments=[keyboards.mailing_recipients_menu().as_markup()],
+        )
+        return
+
+    if sub in ("all", "students", "teachers", "partners"):
+        audience = {
+            "all": (repo.list_all_active_users, "все пользователи"),
+            "students": (repo.list_students, "все студенты"),
+            "teachers": (repo.list_teachers, "все преподаватели"),
+            "partners": (repo.list_partners, "все партнёры"),
+        }[sub]
+        await context.clear()
+        await context.update_data(recipients_fn=audience[0].__name__, audience=audience[1])
+        await context.set_state(Mailing.text)
+        await event.edit(
+            text=(f"📨 Рассылка приглашения на мероприятие.\n\n"
+                  f"Получатели: {audience[1]}.\n\n"
+                  f"Отправьте текст приглашения:"),
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
 
 
 @router.message_created(Mailing.text, F.message.body.text)
 async def mail_text(event: MessageCreated, context: BaseContext) -> None:
     text = (event.message.body.text or "").strip()
     _, admin_id = event.get_ids()
+    data = await context.get_data()
     await context.clear()
     event_id = repo.create_event("event", text, None, admin_id)
-    recipients = [u["user_id"] for u in repo.list_all_active_users()]
+
+    recipients_fn_name = data.get("recipients_fn", "list_all_active_users")
+    recipients_fn = getattr(repo, recipients_fn_name, repo.list_all_active_users)
+    recipients = [u["user_id"] for u in recipients_fn()]
+
+    audience = data.get("audience", "все пользователи")
     sent = await _broadcast(event_id, recipients, f"📣 Приглашение на мероприятие\n\n{text}")
     await event.message.answer(
         f"✅ Рассылка отправлена ({sent} получателей).\n"
+        f"Аудитория: {audience}.\n"
         f"Посмотреть подтверждения: /responses {event_id}"
     )
 

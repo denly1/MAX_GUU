@@ -26,7 +26,7 @@ async def fb_cb(event: MessageCallback, context: BaseContext) -> None:
     parts = keyboards.parse_cb(event.callback.payload)
     sub = parts[1] if len(parts) > 1 else ""
     
-    # Админ нажал "Ответить" на обращение или вопрос
+    # Админ нажал "Ответить" на обращение, вопрос или входящее сообщение
     if sub == "answer" and len(parts) >= 3:
         if not repo.is_admin(user_id):
             await event.ack(notification="Доступно только администраторам")
@@ -58,6 +58,21 @@ async def fb_cb(event: MessageCallback, context: BaseContext) -> None:
             return
         
         await event.ack(notification="Обращение или вопрос не найдены")
+        return
+    
+    # Админ нажал "Ответить" на входящее сообщение пользователя
+    if sub == "reply" and len(parts) >= 3:
+        if not repo.is_admin(user_id):
+            await event.ack(notification="Доступно только администраторам")
+            return
+        target_id = int(parts[2])
+        await context.clear()
+        await context.set_state(AnswerDialog.text)
+        await context.update_data(kind="reply", recipient=target_id)
+        await event.edit(
+            text=f"Введите ответ пользователю (ID: {target_id}):",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
         return
     
     # Обычный пользователь начинает обратную связь
@@ -146,15 +161,64 @@ async def answer_send(event: MessageCreated, context: BaseContext) -> None:
     data = await context.get_data()
     await context.clear()
     recipient = data.get("recipient")
-    if data.get("kind") == "q":
+    kind = data.get("kind")
+    if kind == "q":
         repo.answer_question(data["target_id"], answer)
         prefix = "Ответ на ваш вопрос"
-    else:
+    elif kind == "f":
         repo.answer_feedback(data["target_id"], answer)
         prefix = "Ответ на ваше обращение"
+    else:
+        prefix = "Ответ от администратора"
     try:
         await bot.send_message(user_id=recipient, text=f"{prefix}:\n\n{answer}\n\nЕсли нужно уточнить - нажмите Обратную связь в меню.")
     except Exception:  # noqa: BLE001
         await event.message.answer("Не удалось доставить ответ пользователю.")
         return
     await event.message.answer("Ответ отправлен пользователю.")
+
+
+# ── Пересылка любых сообщений пользователей администраторам ───────────────
+@router.message_created(F.message.body.text)
+async def forward_user_message(event: MessageCreated, context: BaseContext) -> None:
+    """Пересылает админам любое сообщение пользователя (не в FSM и не от админа)."""
+    # Не обрабатываем, если у пользователя активное состояние
+    state = await context.get_state()
+    if state:
+        return
+
+    sender = event.message.sender
+    user_id = sender.user_id if sender else None
+    if not user_id:
+        return
+
+    # Не пересылаем сообщения администраторов
+    if repo.is_admin(user_id):
+        return
+
+    # Не пересылаем команды
+    text = (event.message.body.text or "").strip()
+    if text.startswith("/"):
+        return
+
+    # Не пересылаем кодовые слова мемов (они обрабатываются memes_router)
+    if repo.get_meme(text):
+        return
+
+    user = repo.get_user(user_id)
+    if not user:
+        return
+
+    fio = " ".join(filter(None, [user["last_name"], user["first_name"], user["patronymic"]])) or user["display_name"] or str(user_id)
+
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="Ответить", payload=f"fb:reply:{user_id}"))
+
+    await notify_admins_with_markup(
+        text=(f"💬 Сообщение от пользователя\n\n"
+              f"От: {fio} (ID: {user_id})\n"
+              f"Роль: {texts.ROLE_LABELS.get(user['role'], user['role'])}\n\n"
+              f"{text}"),
+        markup=kb,
+    )
+    await event.message.answer("Ваше сообщение отправлено администратору.")

@@ -55,6 +55,9 @@ async def tadm_cb(event: MessageCallback, context: BaseContext) -> None:
         return
 
     if sub == "list":
+        page = 1
+        if len(parts) > 3 and parts[2] == "page" and parts[3].isdigit():
+            page = int(parts[3])
         tasks = repo.list_tasks()
         if not tasks:
             await event.edit(
@@ -64,7 +67,7 @@ async def tadm_cb(event: MessageCallback, context: BaseContext) -> None:
         else:
             await event.edit(
                 text="Список задач (🟢 активна / 🔴 скрыта):",
-                attachments=[keyboards.task_admin_list(tasks).as_markup()],
+                attachments=[keyboards.task_admin_list(tasks, page=page).as_markup()],
             )
         return
 

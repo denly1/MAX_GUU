@@ -185,33 +185,17 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     
     # Просмотр пользователей
     if sub == "users":
+        page = 1
+        if len(parts) > 3 and parts[2] == "page" and parts[3].isdigit():
+            page = int(parts[3])
         users = repo.list_all_users()
         
-        text = "**Все пользователи**\n\n"
-        text += f"Всего: {len(users)}\n\n"
+        text = f"**Все пользователи**\n\nВсего: {len(users)}\n\nНажмите на пользователя, чтобы перейти к профилю."
         
-        # Группируем по ролям
-        by_role = {}
-        for user in users:
-            role = user['role'] or 'Не указана'
-            if role not in by_role:
-                by_role[role] = []
-            by_role[role].append(user)
-        
-        for role, role_users in by_role.items():
-            role_labels = {
-                'student': '🎓 Студенты',
-                'teacher': '👨‍🏫 Преподаватели',
-                'partner': '🤝 Партнеры',
-                'admin': '👤 Администраторы',
-                'Не указана': '❓ Без роли'
-            }
-            text += f"\n**{role_labels.get(role, role)}:** {len(role_users)}\n"
-        
-        kb = InlineKeyboardBuilder()
-        kb.row(CallbackButton(text="◀️ Назад", payload="apanel:main"))
-        
-        await event.edit(text=text, attachments=[kb.as_markup()])
+        await event.edit(
+            text=text,
+            attachments=[keyboards.users_paginated_list(users, page=page).as_markup()],
+        )
         return
 
 

@@ -144,6 +144,12 @@ def list_teachers() -> list[sqlite3.Row]:
     ).fetchall()
 
 
+def list_partners() -> list[sqlite3.Row]:
+    return _c().execute(
+        "SELECT * FROM users WHERE role = 'partner' AND status = 'verified'"
+    ).fetchall()
+
+
 def list_student_user_ids() -> list[int]:
     """Возвращает user_id всех подтверждённых студентов."""
     rows = _c().execute(

@@ -9,7 +9,7 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 
 from .. import keyboards, repo, texts, validators
-from ..common_ui import notify_admins, send_main_menu
+from ..common_ui import notify_admins
 from ..filters import CbPrefix
 from ..states import Reg
 
@@ -118,9 +118,6 @@ async def reg_patronymic(event: MessageCreated, context: BaseContext) -> None:
         await event.message.answer(
             "Укажите полное юридическое название организации, которую вы представляете:"
         )
-    elif role == "admin":
-        await context.set_state(Reg.phone)
-        await event.message.answer("Укажите ваш номер телефона в формате 8 ххх-ххх хх хх:")
 
 
 # ── Студент: группа ────────────────────────────────────────────────────────
@@ -188,21 +185,9 @@ async def reg_phone(event: MessageCreated, context: BaseContext) -> None:
     elif role == "partner":
         fields.update(organization=data.get("organization"))
 
-    # Администратор регистрируется сразу подтверждённым
-    if role == "admin":
-        repo.save_registration(user_id, role, fields, status="verified")
-        repo.set_was_admin(user_id, 1)
-        await context.clear()
-        await event.message.answer(texts.REGISTRATION_DONE_ADMIN)
-    else:
-        repo.save_registration(user_id, role, fields, status="pending")
-        await context.clear()
-        await event.message.answer(texts.REGISTRATION_DONE)
-
-    # Не уведомляем админов о регистрации нового админа (это создаёт петлю)
-    if role == "admin":
-        await send_main_menu(user_id)
-        return
+    repo.save_registration(user_id, role, fields, status="pending")
+    await context.clear()
+    await event.message.answer(texts.REGISTRATION_DONE)
 
     # Уведомление администраторам с кнопками верификации.
     fio = " ".join(filter(None, [fields["last_name"], fields["first_name"],
@@ -215,10 +200,6 @@ async def reg_phone(event: MessageCreated, context: BaseContext) -> None:
         extra = f"Кафедра: {fields['department']}"
     elif role == "partner":
         extra = f"Организация: {fields['organization']}"
-
-    # Не уведомляем о регистрации администратора (он уже подтверждён)
-    if role == "admin":
-        return
 
     await notify_admins(
         text=(

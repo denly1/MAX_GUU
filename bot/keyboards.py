@@ -126,7 +126,6 @@ def role_select() -> InlineKeyboardBuilder:
     kb.row(CallbackButton(text="Студент", payload="reg:role:student"))
     kb.row(CallbackButton(text="Преподаватель", payload="reg:role:teacher"))
     kb.row(CallbackButton(text="Социальный заказчик", payload="reg:role:partner"))
-    kb.row(CallbackButton(text="Администратор", payload="reg:role:admin"))
     return kb
 
 
@@ -219,12 +218,12 @@ def task_admin_menu() -> InlineKeyboardBuilder:
     return kb
 
 
-def task_admin_list(tasks: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
-    kb = InlineKeyboardBuilder()
+def task_admin_list(tasks: Iterable[sqlite3.Row], page: int = 1) -> InlineKeyboardBuilder:
+    items = []
     for t in tasks:
-        flag = "•" if t["active"] else "•"
-        kb.row(CallbackButton(text=f"{flag} {t['title']}",
-                              payload=f"tadm:view:{t['id']}"))
+        flag = "🟢" if t["active"] else "🔴"
+        items.append((f"{flag} {t['title']}", f"tadm:view:{t['id']}"))
+    kb = paginated_list(items, page, "tadm:list", items_per_page=10)
     kb.row(back_button("tadm:menu"))
     return kb
 
@@ -260,6 +259,44 @@ def application_view(app_id: int) -> InlineKeyboardBuilder:
     return kb
 
 
+def paginated_list(items: list, page: int, action_prefix: str, items_per_page: int = 10) -> InlineKeyboardBuilder:
+    """Строит paginated клавиатуру с кнопками элементов и навигацией.
+
+    items — список кортежей (text, payload) для кнопок.
+    action_prefix — префикс payload для навигации, например 'tadm:list'.
+    """
+    kb = InlineKeyboardBuilder()
+    total_pages = max(1, (len(items) + items_per_page - 1) // items_per_page)
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * items_per_page
+    end = start + items_per_page
+
+    for text, payload in items[start:end]:
+        kb.row(CallbackButton(text=text, payload=payload))
+
+    nav_buttons = []
+    if page > 1:
+        nav_buttons.append(CallbackButton(text="◀️ Назад", payload=f"{action_prefix}:page:{page - 1}"))
+    nav_buttons.append(CallbackButton(text=f"{page}/{total_pages}", payload=f"{action_prefix}:page:{page}"))
+    if page < total_pages:
+        nav_buttons.append(CallbackButton(text="Вперёд ▶️", payload=f"{action_prefix}:page:{page + 1}"))
+    kb.row(*nav_buttons)
+    return kb
+
+
+def users_paginated_list(users: Iterable[sqlite3.Row], page: int = 1) -> InlineKeyboardBuilder:
+    """Пагинированный список пользователей для админ-панели."""
+    items = []
+    for u in users:
+        fio = f"{u['last_name'] or ''} {u['first_name'] or ''}".strip() or u['display_name'] or f"ID {u['user_id']}"
+        role_icon = {"student": "🎓", "teacher": "👨‍🏫", "partner": "🤝", "admin": "👤"}.get(u['role'], "❓")
+        status_icon = {"verified": "✅", "pending": "⏳", "rejected": "❌"}.get(u['status'], "")
+        items.append((f"{role_icon} {status_icon} {fio[:40]}", f"apanel:user:{u['user_id']}"))
+    kb = paginated_list(items, page, "apanel:users", items_per_page=10)
+    kb.row(back_button("apanel:main"))
+    return kb
+
+
 # ── Мемы (админ) ───────────────────────────────────────────────────────────
 def memes_admin_menu(memes: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
@@ -278,6 +315,17 @@ def call_recipients_menu() -> InlineKeyboardBuilder:
     kb.row(CallbackButton(text="Все студенты", payload="call:allst"))
     kb.row(CallbackButton(text="Все преподаватели", payload="call:allteach"))
     kb.row(CallbackButton(text="Все пользователи", payload="call:all"))
+    kb.row(back_button())
+    return kb
+
+
+def mailing_recipients_menu() -> InlineKeyboardBuilder:
+    """Меню выбора аудитории для рассылки."""
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="Все пользователи", payload="mail:all"))
+    kb.row(CallbackButton(text="Все студенты", payload="mail:students"))
+    kb.row(CallbackButton(text="Все преподаватели", payload="mail:teachers"))
+    kb.row(CallbackButton(text="Все партнёры", payload="mail:partners"))
     kb.row(back_button())
     return kb
 
