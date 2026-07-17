@@ -66,6 +66,48 @@ def export_task_choices() -> Path:
     return path
 
 
+def export_applications() -> Path:
+    """Выгрузка заявок партнёров и преподавателей."""
+    headers = [
+        "№", "ФИО подавшего", "Роль", "Название проекта", "Организация/кафедра",
+        "Источник", "Описание", "Ссылка Добро.РФ", "Целевая аудитория",
+        "Кол-во благополучателей", "Механизм", "Желаемый продукт",
+        "Компетенции", "Направления подготовки", "Период (начало)", "Период (конец)",
+        "Контакт ФИО", "Контакт телефон", "Контакт Telegram", "Статус", "Дата",
+    ]
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Заявки"
+    _autoheader(ws, headers)
+
+    rows = get_conn().execute(
+        """
+        SELECT a.*, u.last_name, u.first_name, u.patronymic, u.role
+        FROM applications a
+        LEFT JOIN users u ON u.user_id = a.user_id
+        ORDER BY a.created_at DESC
+        """
+    ).fetchall()
+
+    from .texts import ROLE_LABELS
+    for i, r in enumerate(rows, start=1):
+        fio = " ".join(filter(None, [r["last_name"], r["first_name"], r["patronymic"]])) or "—"
+        ws.append([
+            i, fio, ROLE_LABELS.get(r["role"] or "", r["role"] or ""),
+            r["project_name"], r["org_name"] or r["department"],
+            r["source"], r["description"], r["dobro_link"],
+            r["target_audience"], r["beneficiaries_count"], r["mechanism"],
+            r["desired_product"], r["skills"], r["study_directions"],
+            r["period_start"], r["period_end"],
+            r["contact_fio"], r["contact_phone"], r["contact_telegram"],
+            r["status"], r["created_at"],
+        ])
+
+    path = _new_path("zayavki")
+    wb.save(path)
+    return path
+
+
 def export_tasks() -> Path:
     """Выгрузка списка задач (раздел 2.11)."""
     headers = [

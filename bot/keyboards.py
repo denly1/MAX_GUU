@@ -129,6 +129,99 @@ def role_select() -> InlineKeyboardBuilder:
     return kb
 
 
+def study_program_select(page: int = 1) -> InlineKeyboardBuilder:
+    """Пагинированный список направлений подготовки."""
+    items_per_page = 8
+    programs = texts.STUDY_PROGRAMS
+    total = len(programs)
+    total_pages = max(1, (total + items_per_page - 1) // items_per_page)
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * items_per_page
+    end = start + items_per_page
+
+    kb = InlineKeyboardBuilder()
+    for idx, prog in enumerate(programs[start:end], start=start):
+        kb.row(CallbackButton(text=prog, payload=f"reg:prog:{idx}"))
+
+    nav = []
+    if page > 1:
+        nav.append(CallbackButton(text="◀️", payload=f"reg:sp:{page - 1}"))
+    nav.append(CallbackButton(text=f"{page}/{total_pages}", payload=f"reg:sp:{page}"))
+    if page < total_pages:
+        nav.append(CallbackButton(text="▶️", payload=f"reg:sp:{page + 1}"))
+    kb.row(*nav)
+    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    return kb
+
+
+def department_select(page: int = 1) -> InlineKeyboardBuilder:
+    """Пагинированный список кафедр для регистрации преподавателя."""
+    items_per_page = 8
+    deps = texts.DEPARTMENTS
+    total_pages = max(1, (len(deps) + items_per_page - 1) // items_per_page)
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * items_per_page
+    kb = InlineKeyboardBuilder()
+    for idx, dep in enumerate(deps[start:start + items_per_page], start=start):
+        kb.row(CallbackButton(text=dep[:60], payload=f"reg:dep:{idx}"))
+    nav = []
+    if page > 1:
+        nav.append(CallbackButton(text="◀️", payload=f"reg:dp:{page - 1}"))
+    nav.append(CallbackButton(text=f"{page}/{total_pages}", payload=f"reg:dp:{page}"))
+    if page < total_pages:
+        nav.append(CallbackButton(text="▶️", payload=f"reg:dp:{page + 1}"))
+    kb.row(*nav)
+    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    return kb
+
+
+def teacher_programs_select(page: int = 1, selected: list[int] | None = None) -> InlineKeyboardBuilder:
+    """Пагинированный список программ для преподавателя (мультивыбор)."""
+    selected = selected or []
+    items_per_page = 6
+    progs = texts.STUDY_PROGRAMS
+    total_pages = max(1, (len(progs) + items_per_page - 1) // items_per_page)
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * items_per_page
+    kb = InlineKeyboardBuilder()
+    for idx, prog in enumerate(progs[start:start + items_per_page], start=start):
+        mark = "✅ " if idx in selected else ""
+        kb.row(CallbackButton(text=f"{mark}{prog[:55]}", payload=f"reg:tprog:{idx}"))
+    nav = []
+    if page > 1:
+        nav.append(CallbackButton(text="◀️", payload=f"reg:tpp:{page - 1}"))
+    nav.append(CallbackButton(text=f"{page}/{total_pages}", payload=f"reg:tpp:{page}"))
+    if page < total_pages:
+        nav.append(CallbackButton(text="▶️", payload=f"reg:tpp:{page + 1}"))
+    kb.row(*nav)
+    if selected:
+        kb.row(CallbackButton(text=f"Готово ({len(selected)} выбрано)", payload="reg:tpdone"))
+    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    return kb
+
+
+def task_program_select(page: int = 1) -> InlineKeyboardBuilder:
+    """Пагинированный список программ для добавления задачи администратором."""
+    items_per_page = 8
+    progs = texts.STUDY_PROGRAMS
+    total_pages = max(1, (len(progs) + items_per_page - 1) // items_per_page)
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * items_per_page
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="— Без привязки к программе —", payload="tadm:prog:none"))
+    for idx, prog in enumerate(progs[start:start + items_per_page], start=start):
+        kb.row(CallbackButton(text=prog[:60], payload=f"tadm:prog:{idx}"))
+    nav = []
+    if page > 1:
+        nav.append(CallbackButton(text="◀️", payload=f"tadm:progp:{page - 1}"))
+    nav.append(CallbackButton(text=f"{page}/{total_pages}", payload=f"tadm:progp:{page}"))
+    if page < total_pages:
+        nav.append(CallbackButton(text="▶️", payload=f"tadm:progp:{page + 1}"))
+    kb.row(*nav)
+    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    return kb
+
+
 def institute_select() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     for inst in texts.INSTITUTES:
@@ -322,6 +415,7 @@ def call_recipients_menu() -> InlineKeyboardBuilder:
 def mailing_recipients_menu() -> InlineKeyboardBuilder:
     """Меню выбора аудитории для рассылки."""
     kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="Конкретная команда", payload="mail:team"))
     kb.row(CallbackButton(text="Все пользователи", payload="mail:all"))
     kb.row(CallbackButton(text="Все студенты", payload="mail:students"))
     kb.row(CallbackButton(text="Все преподаватели", payload="mail:teachers"))
@@ -337,6 +431,14 @@ def teams_pick_list(teams: Iterable[sqlite3.Row], action: str
         kb.row(CallbackButton(text=t["name"], payload=f"{action}:{t['id']}"))
     kb.row(back_button())
     return kb
+
+
+def team_pick_mail(teams: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
+    return teams_pick_list(teams, "mail:teampick")
+
+
+def team_pick_call(teams: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
+    return teams_pick_list(teams, "call:teampick")
 
 
 def cancel_kb() -> InlineKeyboardBuilder:

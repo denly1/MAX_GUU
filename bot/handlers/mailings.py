@@ -52,6 +52,35 @@ async def mail_cb(event: MessageCallback, context: BaseContext) -> None:
         )
         return
 
+    if sub == "team":
+        await context.clear()
+        await context.set_state(Mailing.team_search)
+        await event.edit(
+            text="Введите название команды (или часть названия) для поиска:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
+    if sub == "teampick" and len(parts) > 2:
+        team_id = int(parts[2])
+        members = [m["user_id"] for m in repo.list_team_members(team_id)]
+        team = repo.get_team(team_id)
+        team_name = team["name"] if team else f"#{team_id}"
+        await context.clear()
+        await context.update_data(
+            recipients_fn="_team",
+            audience=f"команда «{team_name}»",
+            team_members=members,
+        )
+        await context.set_state(Mailing.text)
+        await event.edit(
+            text=(f"📨 Рассылка приглашения на мероприятие.\n\n"
+                  f"Получатели: команда «{team_name}».\n\n"
+                  f"Отправьте текст приглашения:"),
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
     if sub in ("all", "students", "teachers", "partners"):
         audience = {
             "all": (repo.list_all_active_users, "все пользователи"),
@@ -71,6 +100,38 @@ async def mail_cb(event: MessageCallback, context: BaseContext) -> None:
         return
 
 
+@router.message_created(Mailing.team_search, F.message.body.text)
+async def mail_team_search(event: MessageCreated, context: BaseContext) -> None:
+    query = (event.message.body.text or "").strip()
+    teams = repo.search_teams(query)
+    if not teams:
+        await event.message.answer(
+            f"Команды по запросу «{query}» не найдены. Попробуйте другое название:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+    await event.message.answer(
+        "Выберите команду:",
+        attachments=[keyboards.team_pick_mail(teams).as_markup()],
+    )
+
+
+@router.message_created(CallReminder.team_search, F.message.body.text)
+async def call_team_search(event: MessageCreated, context: BaseContext) -> None:
+    query = (event.message.body.text or "").strip()
+    teams = repo.search_teams(query)
+    if not teams:
+        await event.message.answer(
+            f"Команды по запросу «{query}» не найдены. Попробуйте другое название:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+    await event.message.answer(
+        "Выберите команду:",
+        attachments=[keyboards.team_pick_call(teams).as_markup()],
+    )
+
+
 @router.message_created(Mailing.text, F.message.body.text)
 async def mail_text(event: MessageCreated, context: BaseContext) -> None:
     text = (event.message.body.text or "").strip()
@@ -80,8 +141,11 @@ async def mail_text(event: MessageCreated, context: BaseContext) -> None:
     event_id = repo.create_event("event", text, None, admin_id)
 
     recipients_fn_name = data.get("recipients_fn", "list_all_active_users")
-    recipients_fn = getattr(repo, recipients_fn_name, repo.list_all_active_users)
-    recipients = [u["user_id"] for u in recipients_fn()]
+    if recipients_fn_name == "_team":
+        recipients = data.get("team_members", [])
+    else:
+        recipients_fn = getattr(repo, recipients_fn_name, repo.list_all_active_users)
+        recipients = [u["user_id"] for u in recipients_fn()]
 
     audience = data.get("audience", "все пользователи")
     sent = await _broadcast(event_id, recipients, f"📣 Приглашение на мероприятие\n\n{text}")
@@ -110,17 +174,11 @@ async def call_cb(event: MessageCallback, context: BaseContext) -> None:
         return
 
     if sub == "team":
-        teams = repo.list_teams()
-        if not teams:
-            await event.edit(
-                text="Пока нет ни одной команды.",
-                attachments=[keyboards.InlineKeyboardBuilder().row(
-                    keyboards.back_button()).as_markup()],
-            )
-            return
+        await context.clear()
+        await context.set_state(CallReminder.team_search)
         await event.edit(
-            text="Выберите команду:",
-            attachments=[keyboards.teams_pick_list(teams, "call:teampick").as_markup()],
+            text="Введите название команды (или часть названия) для поиска:",
+            attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
 

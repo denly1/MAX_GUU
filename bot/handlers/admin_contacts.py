@@ -72,11 +72,11 @@ async def admins_cb(event: MessageCallback, context: BaseContext) -> None:
             kb.row(CallbackButton(text="Назад", payload="admins:manage"))
             
             await event.edit(
-                text=(f"**Редактирование контакта**\n\n"
-                      f"**ФИО:** {contact['fio']}\n"
-                      f"**Телефон:** {contact['phone']}\n"
-                      f"**Telegram:** {contact['telegram'] or '—'}\n"
-                      f"**Фото:** {'Есть' if (contact['photo_token'] or contact['photo_url']) else 'Нет'}\n\n"
+                text=(f"Редактирование контакта\n\n"
+                      f"ФИО: {contact['fio']}\n"
+                      f"Телефон: {contact['phone']}\n"
+                      f"Telegram: {contact['telegram'] or '—'}\n"
+                      f"Фото: {'Есть' if (contact['photo_token'] or contact['photo_url']) else 'Нет'}\n\n"
                       f"Выберите, что хотите изменить:"),
                 attachments=[kb.as_markup()],
             )
@@ -153,7 +153,7 @@ async def admins_cb(event: MessageCallback, context: BaseContext) -> None:
             return
         
         text = (
-            f"**{contact['fio']}**\n\n"
+            f"{contact['fio']}\n\n"
             f"Телефон: {contact['phone']}\n"
             f"Telegram: {contact['telegram'] or '—'}"
         )
@@ -199,7 +199,7 @@ async def admins_cb(event: MessageCallback, context: BaseContext) -> None:
         return
     
     # Показываем список контактов с кнопками
-    text = "**Контакты администраторов программы «Обучение служением»**\n\n"
+    text = "Контакты администраторов программы «Обучение служением»\n\n"
     text += "Выберите контакт для просмотра:\n"
     
     kb = InlineKeyboardBuilder()
@@ -340,12 +340,11 @@ async def contact_photo_skip(event: MessageCreated, context: BaseContext) -> Non
         )
 
 
-@router.message_created(AdminContactEdit.photo, F.message.attachments)
+@router.message_created(AdminContactEdit.photo, F.message.body.attachments)
 async def contact_photo_upload(event: MessageCreated, context: BaseContext) -> None:
     """Загрузка фото."""
-    # Ищем изображение в attachments
     photo_token = None
-    for att in event.message.attachments or []:
+    for att in (event.message.body.attachments or []):
         if hasattr(att, 'file_token'):
             photo_token = att.file_token
             break

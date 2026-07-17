@@ -24,9 +24,11 @@ class Reg(StatesGroup):
     # студент
     institute = State()
     course = State()
+    study_program = State()
     group = State()
     # преподаватель
     department = State()
+    teacher_programs = State()
     # соц. заказчик
     organization = State()
     # общий телефон
@@ -74,12 +76,14 @@ class TaskAdmin(StatesGroup):
 class Mailing(StatesGroup):
     """Создание рассылки-приглашения на мероприятие."""
 
+    team_search = State()
     text = State()
 
 
 class CallReminder(StatesGroup):
     """Напоминание о созвоне для выбранной группы."""
 
+    team_search = State()
     pick_recipients = State()
     text = State()
     link = State()

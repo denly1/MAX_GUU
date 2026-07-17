@@ -91,38 +91,40 @@ async def meme_text(event: MessageCreated, context: BaseContext) -> None:
         "Отправьте картинку для мема (или «-», чтобы оставить без картинки):")
 
 
-@router.message_created(MemeAdmin.image, F.message.body.attachments)
+@router.message_created(MemeAdmin.image)
 async def meme_image(event: MessageCreated, context: BaseContext) -> None:
     body = event.message.body
+    text = (body.text or "").strip() if body else ""
     attachments = body.attachments if body else None
+
     token = None
-    if attachments and isinstance(attachments[0], Image):
-        payload = attachments[0].payload
-        token = getattr(payload, "token", None)
-    if not token:
-        await event.message.answer("Не удалось распознать картинку. Отправьте фото ещё раз или «-»:")
-        return
-    data = await context.get_data()
-    repo.upsert_meme(data["code_word"], data.get("meme_text", ""), token)
-    await context.clear()
-    await event.message.answer(
-        f"✅ Мем по кодовому слову «{data['code_word']}» сохранён.",
-        attachments=[keyboards.memes_admin_menu(repo.list_memes()).as_markup()],
-    )
+    if attachments:
+        for att in attachments:
+            if isinstance(att, Image):
+                token = getattr(att.payload, "token", None)
+                break
 
-
-@router.message_created(MemeAdmin.image, F.message.body.text)
-async def meme_image_skip(event: MessageCreated, context: BaseContext) -> None:
-    if (event.message.body.text or "").strip() != "-":
-        await event.message.answer("Отправьте картинку или «-», чтобы пропустить:")
+    if token:
+        data = await context.get_data()
+        repo.upsert_meme(data["code_word"], data.get("meme_text", ""), token)
+        await context.clear()
+        await event.message.answer(
+            f"✅ Мем «{data['code_word']}» сохранён.",
+            attachments=[keyboards.memes_admin_menu(repo.list_memes()).as_markup()],
+        )
         return
-    data = await context.get_data()
-    repo.upsert_meme(data["code_word"], data.get("meme_text", ""), None)
-    await context.clear()
-    await event.message.answer(
-        f"✅ Мем по кодовому слову «{data['code_word']}» сохранён (без картинки).",
-        attachments=[keyboards.memes_admin_menu(repo.list_memes()).as_markup()],
-    )
+
+    if text == "-":
+        data = await context.get_data()
+        repo.upsert_meme(data["code_word"], data.get("meme_text", ""), None)
+        await context.clear()
+        await event.message.answer(
+            f"✅ Мем «{data['code_word']}» сохранён (без картинки).",
+            attachments=[keyboards.memes_admin_menu(repo.list_memes()).as_markup()],
+        )
+        return
+
+    await event.message.answer("Отправьте картинку для мема или «-», чтобы пропустить:")
 
 
 # ── Глобальный fallback: реакция на кодовое слово ──────────────────────────

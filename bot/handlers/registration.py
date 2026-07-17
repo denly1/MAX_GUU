@@ -9,7 +9,7 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 
 from .. import keyboards, repo, texts, validators
-from ..common_ui import notify_admins, send_main_menu
+from ..common_ui import send_main_menu
 from ..filters import CbPrefix
 from ..states import Reg
 
@@ -60,9 +60,94 @@ async def reg_cb(event: MessageCallback, context: BaseContext) -> None:
     # reg:course:<course>
     if len(parts) == 3 and parts[1] == "course":
         await context.update_data(course=parts[2])
+        await context.set_state(Reg.study_program)
+        await event.edit(
+            text=f"Курс: {parts[2]}\n\nУкажите ваше направление подготовки:",
+            attachments=[keyboards.study_program_select(1).as_markup()],
+        )
+        return
+
+    # reg:sp:<page> — пагинация по направлениям
+    if len(parts) == 3 and parts[1] == "sp" and parts[2].isdigit():
+        page = int(parts[2])
+        await event.edit(
+            text="Укажите ваше направление подготовки:",
+            attachments=[keyboards.study_program_select(page).as_markup()],
+        )
+        return
+
+    # reg:prog:<idx> — выбор направления студента
+    if len(parts) == 3 and parts[1] == "prog":
+        idx = int(parts[2])
+        program = texts.STUDY_PROGRAMS[idx]
+        await context.update_data(education_program=program)
         await context.set_state(Reg.group)
         await event.edit(
-            text=f"Курс: {parts[2]}\n\nУкажите группу в формате «РиССовБ 1-1»:",
+            text=f"Направление: {program}\n\nУкажите номер вашей группы (цифра от 1 до 10):",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
+    # reg:dep:<idx> — выбор кафедры преподавателя
+    if len(parts) == 3 and parts[1] == "dep":
+        idx = int(parts[2])
+        dep = texts.DEPARTMENTS[idx]
+        await context.update_data(department=dep)
+        await context.set_state(Reg.teacher_programs)
+        data = await context.get_data()
+        selected = data.get("selected_prog_ids", [])
+        await event.edit(
+            text=f"Кафедра: {dep}\n\nУкажите образовательные программы, студентов которых вы будете курировать:\n(можно выбрать несколько)",
+            attachments=[keyboards.teacher_programs_select(1, selected).as_markup()],
+        )
+        return
+
+    # reg:dp:<page> — пагинация кафедр
+    if len(parts) == 3 and parts[1] == "dp" and parts[2].isdigit():
+        await event.edit(
+            text="Укажите вашу кафедру:",
+            attachments=[keyboards.department_select(int(parts[2])).as_markup()],
+        )
+        return
+
+    # reg:tprog:<idx> — тоггл программы преподавателя
+    if len(parts) == 3 and parts[1] == "tprog":
+        idx = int(parts[2])
+        data = await context.get_data()
+        selected = list(data.get("selected_prog_ids", []))
+        if idx in selected:
+            selected.remove(idx)
+        else:
+            selected.append(idx)
+        await context.update_data(selected_prog_ids=selected)
+        dep = data.get("department", "")
+        await event.edit(
+            text=f"Кафедра: {dep}\n\nВыбрано: {len(selected)} программ\nПродолжайте выбирать или нажмите «Готово»:",
+            attachments=[keyboards.teacher_programs_select(1, selected).as_markup()],
+        )
+        return
+
+    # reg:tpp:<page> — пагинация программ преподавателя
+    if len(parts) == 3 and parts[1] == "tpp" and parts[2].isdigit():
+        data = await context.get_data()
+        selected = data.get("selected_prog_ids", [])
+        dep = data.get("department", "")
+        await event.edit(
+            text=f"Кафедра: {dep}\n\nВыбрано: {len(selected)} программ\nПродолжайте выбирать:",
+            attachments=[keyboards.teacher_programs_select(int(parts[2]), selected).as_markup()],
+        )
+        return
+
+    # reg:tpdone — подтверждение выбора программ
+    if len(parts) == 2 and parts[1] == "tpdone":
+        data = await context.get_data()
+        selected = data.get("selected_prog_ids", [])
+        programs_str = ",".join(str(i) for i in selected)
+        await context.update_data(teacher_programs=programs_str)
+        await context.set_state(Reg.phone)
+        names = [texts.STUDY_PROGRAMS[i] for i in selected if i < len(texts.STUDY_PROGRAMS)]
+        await event.edit(
+            text=f"Выбрано программ: {len(names)}\n\nУкажите ваш номер телефона в формате 8 ххх-ххх хх хх:",
             attachments=[keyboards.cancel_kb().as_markup()],
         )
         return
@@ -109,7 +194,10 @@ async def reg_patronymic(event: MessageCreated, context: BaseContext) -> None:
         )
     elif role == "teacher":
         await context.set_state(Reg.department)
-        await event.message.answer("Укажите вашу кафедру:")
+        await event.message.answer(
+            "Укажите вашу кафедру:",
+            attachments=[keyboards.department_select(1).as_markup()],
+        )
     elif role == "partner":
         await context.set_state(Reg.organization)
         await event.message.answer(
@@ -120,25 +208,14 @@ async def reg_patronymic(event: MessageCreated, context: BaseContext) -> None:
 # ── Студент: группа ────────────────────────────────────────────────────────
 @router.message_created(Reg.group, F.message.body.text)
 async def reg_group(event: MessageCreated, context: BaseContext) -> None:
-    group = (event.message.body.text or "").strip()
-    if not group:
-        await event.message.answer("Группа не может быть пустой. Попробуйте ещё раз:")
+    raw = (event.message.body.text or "").strip()
+    if not raw.isdigit() or not (1 <= int(raw) <= 10):
+        await event.message.answer("Номер группы — цифра от 1 до 10. Попробуйте ещё раз:")
         return
-    await context.update_data(group_name=group)
+    await context.update_data(group_name=raw)
     await context.set_state(Reg.phone)
     await event.message.answer("Укажите ваш номер телефона в формате 8 ххх-ххх хх хх:")
 
-
-# ── Преподаватель: кафедра ─────────────────────────────────────────────────
-@router.message_created(Reg.department, F.message.body.text)
-async def reg_department(event: MessageCreated, context: BaseContext) -> None:
-    dep = (event.message.body.text or "").strip()
-    if not dep:
-        await event.message.answer("Кафедра не может быть пустой. Попробуйте ещё раз:")
-        return
-    await context.update_data(department=dep)
-    await context.set_state(Reg.phone)
-    await event.message.answer("Укажите ваш номер телефона в формате 8 ххх-ххх хх хх:")
 
 
 # ── Соц. заказчик: организация ─────────────────────────────────────────────
@@ -175,35 +252,18 @@ async def reg_phone(event: MessageCreated, context: BaseContext) -> None:
         fields.update(
             institute=data.get("institute"),
             course=data.get("course"),
+            education_program=data.get("education_program"),
             group_name=data.get("group_name"),
         )
     elif role == "teacher":
-        fields.update(department=data.get("department"))
+        fields.update(
+            department=data.get("department"),
+            teacher_programs=data.get("teacher_programs"),
+        )
     elif role == "partner":
         fields.update(organization=data.get("organization"))
 
-    repo.save_registration(user_id, role, fields, status="pending")
+    repo.save_registration(user_id, role, fields, status="verified")
     await context.clear()
     await event.message.answer(texts.REGISTRATION_DONE)
-
-    # Уведомление администраторам с кнопками верификации.
-    fio = " ".join(filter(None, [fields["last_name"], fields["first_name"],
-                                 fields["patronymic"]]))
-    extra = ""
-    if role == "student":
-        extra = (f"Институт: {fields['institute']}, курс {fields['course']}, "
-                 f"группа {fields['group_name']}")
-    elif role == "teacher":
-        extra = f"Кафедра: {fields['department']}"
-    elif role == "partner":
-        extra = f"Организация: {fields['organization']}"
-
-    await notify_admins(
-        text=(
-            f"🆕 Новая регистрация на подтверждение\n\n"
-            f"Роль: {texts.ROLE_LABELS.get(role, role)}\n"
-            f"ФИО: {fio}\n{extra}\n"
-            f"Телефон: {phone}"
-        ),
-        attachments=[keyboards.verify_actions(user_id).as_markup()],
-    )
+    await send_main_menu(user_id)

@@ -32,8 +32,9 @@ def _task_card_text(task) -> str:
     )
 
 
-async def _show_available_tasks(event: MessageCallback, header: str) -> None:
-    tasks = repo.list_available_tasks()
+async def _show_available_tasks(event: MessageCallback, header: str,
+                               program: str | None = None) -> None:
+    tasks = repo.list_available_tasks_for_program(program)
     if not tasks:
         await event.edit(
             text=f"{header}\n\nСейчас нет доступных задач. Попробуйте позже.",
@@ -58,14 +59,24 @@ async def task_cb(event: MessageCallback, context: BaseContext) -> None:
         if not require_role(user_id, "teacher", "admin", "student"):
             await event.ack(notification="Недоступно")
             return
-        tasks = repo.list_tasks()
+        user = repo.get_user(user_id)
+        user_role = user["role"] if user else None
+        if user_role == "teacher":
+            tp_raw = dict(user).get("teacher_programs") or ""
+            prog_ids = [int(x) for x in tp_raw.split(",") if x.strip().isdigit()]
+            from .. import texts as _t
+            programs = [_t.STUDY_PROGRAMS[i] for i in prog_ids if i < len(_t.STUDY_PROGRAMS)]
+            tasks = repo.list_tasks_for_programs(programs)
+        else:
+            tasks = repo.list_tasks()
         if not tasks:
             text = "Список задач пуст."
         else:
             lines = ["📑 Список задач:\n"]
             for t in tasks:
+                prog = f" [{t['education_program']}]" if t["education_program"] else ""
                 lines.append(
-                    f"• {t['title']} — {t['partner_name']}\n  {t['description']}\n"
+                    f"• {t['title']} — {t['partner_name']}{prog}\n  {t['description']}\n"
                     f"  Команд: {t['max_teams']}"
                 )
             text = "\n\n".join(lines)
@@ -99,6 +110,24 @@ async def task_cb(event: MessageCallback, context: BaseContext) -> None:
         await event.edit(
             text="Укажите вашу роль в команде:",
             attachments=[keyboards.team_role_select().as_markup()],
+        )
+        return
+
+    # Задачи по программе студента
+    if sub == "myprogram":
+        user = repo.get_user(user_id)
+        program = dict(user).get("education_program") if user else None
+        tasks = repo.list_available_tasks_for_program(program)
+        if not tasks:
+            await event.edit(
+                text="Сейчас нет доступных задач для вашей программы.",
+                attachments=[keyboards.InlineKeyboardBuilder().row(
+                    keyboards.back_button()).as_markup()],
+            )
+            return
+        await event.edit(
+            text="Задачи для вашей образовательной программы:",
+            attachments=[keyboards.task_choose_list(tasks).as_markup()],
         )
         return
 
@@ -139,7 +168,9 @@ async def task_cb(event: MessageCallback, context: BaseContext) -> None:
 
     # Назад к списку задач
     if sub == "back_list":
-        await _show_available_tasks(event, "Выберите задачу для команды:")
+        user = repo.get_user(user_id)
+        program = dict(user).get("education_program") if user else None
+        await _show_available_tasks(event, "Выберите задачу для команды:", program=program)
         return
 
     # Нажатие «Выбрать задачу» -> подтверждение
@@ -224,7 +255,9 @@ async def leader_team_password(event: MessageCreated, context: BaseContext) -> N
     _, user_id = event.get_ids()
     repo.create_team(name=data["team_name"], password=pwd, leader_id=user_id)
     await context.set_state(TaskFlow.choose_task)
-    tasks = repo.list_available_tasks()
+    user = repo.get_user(user_id)
+    program = dict(user).get("education_program") if user else None
+    tasks = repo.list_available_tasks_for_program(program)
     if not tasks:
         await context.clear()
         await event.message.answer(

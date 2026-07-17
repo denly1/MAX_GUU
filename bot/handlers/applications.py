@@ -13,9 +13,10 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-from .. import keyboards, repo, texts, validators
+from .. import keyboards, repo, reports, texts, validators
 from ..common_ui import notify_admins, require_role
 from ..filters import CbPrefix
+from ..instance import bot
 from ..states import Application
 
 router = Router(router_id="applications")
@@ -220,37 +221,37 @@ def _format_application(a: dict) -> str:
     lines = [
         f"📥 Заявка на проект #{a['id']}",
         "",
-        f"**Название проекта:** {a['project_name']}",
-        f"**Организация:** {a['org_name']}",
-        f"**Источник задачи:** {a['source']}",
+        f"Название проекта: {a['project_name']}",
+        f"Организация: {a['org_name']}",
+        f"Источник задачи: {a['source']}",
     ]
     if a.get('department'):
-        lines.append(f"**Кафедра:** {a['department']}")
+        lines.append(f"Кафедра: {a['department']}")
     lines.extend([
         "",
-        f"**Описание:** {a['description']}",
+        f"Описание: {a['description']}",
         "",
-        f"**Целевая аудитория:** {a['target_audience']}",
-        f"**Количество благополучателей:** {a['beneficiaries_count']}",
-        f"**Механизм действий:** {a['mechanism']}",
-        f"**Желаемый продукт:** {a['desired_product']}",
-        f"**Навыки студентов:** {a['skills']}",
+        f"Целевая аудитория: {a['target_audience']}",
+        f"Количество благополучателей: {a['beneficiaries_count']}",
+        f"Механизм действий: {a['mechanism']}",
+        f"Желаемый продукт: {a['desired_product']}",
+        f"Навыки студентов: {a['skills']}",
     ])
     if a.get('study_directions'):
-        lines.append(f"**Направления обучения:** {a['study_directions']}")
+        lines.append(f"Направления обучения: {a['study_directions']}")
     if a.get('dobro_link'):
-        lines.append(f"**Ссылка на Добро.РФ:** {a['dobro_link']}")
+        lines.append(f"Ссылка на Добро.РФ: {a['dobro_link']}")
     lines.extend([
         "",
-        f"**Период:** {a['period_start']} — {a['period_end']}",
+        f"Период: {a['period_start']} — {a['period_end']}",
         "",
-        f"**Контактное лицо:** {a['contact_fio']}",
-        f"**Телефон:** {a['contact_phone']}",
+        f"Контактное лицо: {a['contact_fio']}",
+        f"Телефон: {a['contact_phone']}",
     ])
     if a.get('contact_telegram'):
-        lines.append(f"**Telegram:** {a['contact_telegram']}")
-    lines.append(f"**Статус:** {a['status']}")
-    lines.append(f"**Дата подачи:** {a['created_at'][:10] if a['created_at'] else '—'}")
+        lines.append(f"Telegram: {a['contact_telegram']}")
+    lines.append(f"Статус: {a['status']}")
+    lines.append(f"Дата подачи: {a['created_at'][:10] if a['created_at'] else '—'}")
     return "\n".join(lines)
 
 
@@ -262,6 +263,17 @@ async def apps_list_cb(event: MessageCallback) -> None:
         return
     parts = keyboards.parse_cb(event.callback.payload)
     sub = parts[1] if len(parts) > 1 else ""
+
+    if sub == "export":
+        await event.ack(notification="Готовлю файл…")
+        from maxapi.types.input_media import InputMedia
+        path = reports.export_applications()
+        await bot.send_message(
+            user_id=event.callback.user.user_id,
+            text="📊 Выгрузка заявок:",
+            attachments=[InputMedia(path=str(path))],
+        )
+        return
 
     if sub == "view" and len(parts) > 2:
         app_id = int(parts[2])
@@ -283,6 +295,7 @@ async def apps_list_cb(event: MessageCallback) -> None:
 
     text = "📥 Заявки на проекты:\n\nНажмите на заявку, чтобы посмотреть подробности."
     kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="📊 Выгрузить в Excel", payload="apps:export"))
     for a in apps[:30]:
         kb.row(CallbackButton(
             text=f"#{a['id']} {a['project_name']} — {a['org_name']}",
@@ -290,3 +303,5 @@ async def apps_list_cb(event: MessageCallback) -> None:
         ))
     kb.row(keyboards.back_button())
     await event.edit(text=text, attachments=[kb.as_markup()])
+
+

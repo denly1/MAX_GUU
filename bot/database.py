@@ -44,8 +44,9 @@ CREATE TABLE IF NOT EXISTS users (
     organization TEXT,
     phone        TEXT,
     display_name TEXT,
-    was_admin    INTEGER DEFAULT 0,
-    created_at   TEXT DEFAULT (datetime('now'))
+    was_admin         INTEGER DEFAULT 0,
+    teacher_programs  TEXT,
+    created_at        TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS faq (
@@ -167,8 +168,17 @@ def init_db() -> None:
     """Создаёт таблицы и наполняет справочники, если они пусты."""
     conn = get_conn()
     conn.executescript(SCHEMA)
+    _migrate(conn)
     conn.commit()
     _seed(conn)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Добавляет колонки в существующие таблицы (безопасно)."""
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "teacher_programs" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN teacher_programs TEXT")
+    conn.commit()
 
 
 def _seed(conn: sqlite3.Connection) -> None:

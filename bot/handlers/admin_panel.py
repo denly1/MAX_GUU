@@ -11,7 +11,7 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-from .. import keyboards, repo
+from .. import config, keyboards, repo
 from ..common_ui import require_role, send_main_menu
 from ..filters import CbPrefix
 from ..instance import bot
@@ -55,7 +55,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         kb.row(keyboards.back_button())
         
         await event.edit(
-            text="**Админ-панель**\n\nВыберите действие:",
+            text="Админ-панель\n\nВыберите действие:",
             attachments=[kb.as_markup()],
         )
         return
@@ -64,7 +64,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     if sub == "admins":
         admins = repo.list_admins()
         
-        text = "**Управление администраторами**\n\n"
+        text = "Управление администраторами\n\n"
         text += f"Всего администраторов: {len(admins)}\n\n"
         
         for admin in admins:
@@ -90,7 +90,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         await context.set_state(AdminManage.user_id)
         await event.edit(
             text=(
-                "➕ **Добавление администратора**\n\n"
+                "➕ Добавление администратора\n\n"
                 "Введите MAX user_id пользователя, которого хотите сделать администратором:"
             ),
             attachments=[keyboards.cancel_kb().as_markup()],
@@ -123,7 +123,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         
         # Обновляем список
         admins = repo.list_admins()
-        text = "**Управление администраторами**\n\n"
+        text = "Управление администраторами\n\n"
         text += f"Всего администраторов: {len(admins)}\n\n"
         
         for admin in admins:
@@ -164,7 +164,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         
         await event.edit(
             text=(
-                f"**Переключение роли**\n\n"
+                f"Переключение роли\n\n"
                 f"Текущая роль: {role_labels.get(current_role, current_role)}\n\n"
                 f"Выберите роль для просмотра интерфейса:"
             ),
@@ -191,7 +191,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
             page = int(parts[3])
         users = repo.list_all_users()
         
-        text = f"**Все пользователи**\n\nВсего: {len(users)}\n\nНажмите на пользователя, чтобы перейти к профилю."
+        text = f"Все пользователи\n\nВсего: {len(users)}\n\nНажмите на пользователя, чтобы перейти к профилю."
         
         await event.edit(
             text=text,
@@ -258,7 +258,7 @@ async def admin_command(event: MessageCreated, context: BaseContext) -> None:
     can_return_admin = user_id in config.ADMIN_IDS
     if not can_return_admin:
         user = repo.get_user(user_id)
-        can_return_admin = bool(user and user.get("was_admin"))
+        can_return_admin = bool(user and dict(user).get("was_admin"))
     
     if can_return_admin:
         repo.set_user_role(user_id, "admin", status="verified")

@@ -71,7 +71,8 @@ def update_user_field(user_id: int, field: str, value: str | None) -> None:
     """Обновляет одно поле пользователя."""
     allowed_fields = {
         "last_name", "first_name", "patronymic", "phone",
-        "institute", "course", "group_name", "department", "organization"
+        "institute", "course", "group_name", "department",
+        "organization", "education_program", "teacher_programs"
     }
     if field not in allowed_fields:
         raise ValueError(f"Недопустимое поле: {field}")
@@ -329,6 +330,39 @@ def list_tasks(active_only: bool = False) -> list[sqlite3.Row]:
     return _c().execute(q).fetchall()
 
 
+def list_tasks_for_programs(programs: list[str]) -> list[sqlite3.Row]:
+    """Задачи для конкретных образовательных программ (для преподавателя).
+    Возвращает задачи, у которых education_program входит в список,
+    либо задачи без привязки к программе.
+    """
+    if not programs:
+        return list_tasks()
+    rows = list_tasks()
+    result = []
+    for r in rows:
+        ep = r["education_program"]
+        if not ep or ep in programs:
+            result.append(r)
+    return result
+
+
+def list_available_tasks_for_program(program: str | None) -> list[sqlite3.Row]:
+    """Активные задачи с доступными слотами, отфильтрованные по программе студента."""
+    rows = _c().execute(
+        """
+        SELECT t.*, (
+            SELECT COUNT(*) FROM teams te WHERE te.task_id = t.id
+        ) AS taken
+        FROM tasks t
+        WHERE t.active = 1
+        """
+    ).fetchall()
+    available = [r for r in rows if r["taken"] < r["max_teams"]]
+    if not program:
+        return available
+    return [r for r in available if not r["education_program"] or r["education_program"] == program]
+
+
 def list_available_tasks() -> list[sqlite3.Row]:
     """Активные задачи, у которых ещё есть свободные слоты для команд."""
     rows = _c().execute(
@@ -396,6 +430,14 @@ def get_team_by_name(name: str) -> Optional[sqlite3.Row]:
 
 def list_teams() -> list[sqlite3.Row]:
     return _c().execute("SELECT * FROM teams ORDER BY name").fetchall()
+
+
+def search_teams(query: str) -> list[sqlite3.Row]:
+    """Ищет команды по подстроке названия (case-insensitive)."""
+    return _c().execute(
+        "SELECT * FROM teams WHERE name LIKE ? ORDER BY name",
+        (f"%{query}%",),
+    ).fetchall()
 
 
 def get_user_team(user_id: int) -> Optional[sqlite3.Row]:

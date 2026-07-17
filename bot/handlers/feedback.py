@@ -11,7 +11,7 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-from .. import keyboards, repo
+from .. import keyboards, repo, texts
 from ..common_ui import notify_admins, notify_admins_with_markup, require_verified
 from ..filters import CbPrefix
 from ..instance import bot

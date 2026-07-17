@@ -25,9 +25,9 @@ async def stats_cb(event: MessageCallback) -> None:
     stats = repo.get_statistics()
     
     text = (
-        "📊 **Статистика программы «Обучение служением»**\n\n"
+        "📊 Статистика программы «Обучение служением»\n\n"
         
-        "👥 **Пользователи:**\n"
+        "👥 Пользователи:\n"
         f"├─ Всего: {stats['total_users']}\n"
         f"├─ 🎓 Студентов: {stats['students']}\n"
         f"├─ 👨‍🏫 Преподавателей: {stats['teachers']}\n"
@@ -35,17 +35,17 @@ async def stats_cb(event: MessageCallback) -> None:
         f"├─ ⚙️ Администраторов: {stats['admins']}\n"
         f"└─ ⏳ На верификации: {stats['pending']}\n\n"
         
-        "🗂 **Проекты:**\n"
+        "🗂 Проекты:\n"
         f"├─ Всего задач: {stats['total_tasks']}\n"
         f"├─ ✅ Активных: {stats['active_tasks']}\n"
         f"└─ 🔴 Скрытых: {stats['inactive_tasks']}\n\n"
         
-        "👥 **Команды:**\n"
+        "👥 Команды:\n"
         f"├─ Всего команд: {stats['total_teams']}\n"
         f"├─ Участников: {stats['team_members']}\n"
         f"└─ Средний размер: {stats['avg_team_size']}\n\n"
         
-        "💬 **Активность:**\n"
+        "💬 Активность:\n"
         f"├─ Вопросов от пользователей: {stats['questions']}\n"
         f"├─ Обратной связи: {stats['feedback']}\n"
         f"├─ Заявок на проекты: {stats['applications']}\n"
