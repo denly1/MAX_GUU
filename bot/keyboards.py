@@ -12,7 +12,7 @@ from typing import Iterable
 from maxapi.types.attachments.buttons.callback_button import CallbackButton
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-from . import texts
+from . import repo, texts
 
 
 def parse_cb(payload: str | None) -> list[str]:
@@ -132,7 +132,7 @@ def role_select() -> InlineKeyboardBuilder:
 def study_program_select(page: int = 1) -> InlineKeyboardBuilder:
     """Пагинированный список направлений подготовки."""
     items_per_page = 8
-    programs = texts.STUDY_PROGRAMS
+    programs = repo.list_study_programs()
     total = len(programs)
     total_pages = max(1, (total + items_per_page - 1) // items_per_page)
     page = max(1, min(page, total_pages))
@@ -157,7 +157,7 @@ def study_program_select(page: int = 1) -> InlineKeyboardBuilder:
 def department_select(page: int = 1) -> InlineKeyboardBuilder:
     """Пагинированный список кафедр для регистрации преподавателя."""
     items_per_page = 8
-    deps = texts.DEPARTMENTS
+    deps = repo.list_departments()
     total_pages = max(1, (len(deps) + items_per_page - 1) // items_per_page)
     page = max(1, min(page, total_pages))
     start = (page - 1) * items_per_page
@@ -179,7 +179,7 @@ def teacher_programs_select(page: int = 1, selected: list[int] | None = None) ->
     """Пагинированный список программ для преподавателя (мультивыбор)."""
     selected = selected or []
     items_per_page = 6
-    progs = texts.STUDY_PROGRAMS
+    progs = repo.list_study_programs()
     total_pages = max(1, (len(progs) + items_per_page - 1) // items_per_page)
     page = max(1, min(page, total_pages))
     start = (page - 1) * items_per_page
@@ -203,7 +203,7 @@ def teacher_programs_select(page: int = 1, selected: list[int] | None = None) ->
 def task_program_select(page: int = 1) -> InlineKeyboardBuilder:
     """Пагинированный список программ для добавления задачи администратором."""
     items_per_page = 8
-    progs = texts.STUDY_PROGRAMS
+    progs = repo.list_study_programs()
     total_pages = max(1, (len(progs) + items_per_page - 1) // items_per_page)
     page = max(1, min(page, total_pages))
     start = (page - 1) * items_per_page
@@ -225,7 +225,7 @@ def task_program_select(page: int = 1) -> InlineKeyboardBuilder:
 def task_edit_program_select(task_id: int, page: int = 1) -> InlineKeyboardBuilder:
     """Пагинированный список программ для РЕДАКТИРОВАНИЯ задачи (payload tadm:edit_prog)."""
     items_per_page = 8
-    progs = texts.STUDY_PROGRAMS
+    progs = repo.list_study_programs()
     total_pages = max(1, (len(progs) + items_per_page - 1) // items_per_page)
     page = max(1, min(page, total_pages))
     start = (page - 1) * items_per_page
@@ -248,7 +248,7 @@ def task_edit_program_select(task_id: int, page: int = 1) -> InlineKeyboardBuild
 
 def institute_select() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    for inst in texts.INSTITUTES:
+    for inst in repo.list_institutes():
         kb.row(CallbackButton(text=inst, payload=f"reg:inst:{inst}"))
     return kb
 
@@ -264,7 +264,7 @@ def course_select() -> InlineKeyboardBuilder:
 def profile_institute_select() -> InlineKeyboardBuilder:
     """Выбор института при редактировании профиля (prefix prof:)."""
     kb = InlineKeyboardBuilder()
-    for inst in texts.INSTITUTES:
+    for inst in repo.list_institutes():
         kb.row(CallbackButton(text=inst, payload=f"prof:inst:{inst}"))
     return kb
 
@@ -281,7 +281,7 @@ def profile_course_select() -> InlineKeyboardBuilder:
 def profile_study_program_select(page: int = 1) -> InlineKeyboardBuilder:
     """Пагинированный список направлений для редактирования профиля (prefix prof:)."""
     items_per_page = 8
-    programs = texts.STUDY_PROGRAMS
+    programs = repo.list_study_programs()
     total = len(programs)
     start = (page - 1) * items_per_page
     end = start + items_per_page
@@ -301,7 +301,7 @@ def profile_study_program_select(page: int = 1) -> InlineKeyboardBuilder:
 def profile_department_select(page: int = 1) -> InlineKeyboardBuilder:
     """Пагинированный список кафедр для редактирования профиля (prefix prof:)."""
     items_per_page = 8
-    deps = texts.DEPARTMENTS
+    deps = repo.list_departments()
     total = len(deps)
     start = (page - 1) * items_per_page
     end = start + items_per_page

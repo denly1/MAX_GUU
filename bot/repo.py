@@ -633,6 +633,60 @@ def get_statistics() -> dict[str, int]:
     }
 
 
+# ── Справочники (институты, кафедры, направления) ──────────────────────────
+def list_institutes() -> list[str]:
+    rows = _c().execute("SELECT name FROM institutes ORDER BY position, name").fetchall()
+    return [r["name"] for r in rows]
+
+
+def add_institute(name: str) -> None:
+    conn = _c()
+    pos = (conn.execute("SELECT MAX(position) FROM institutes").fetchone()[0] or 0) + 1
+    conn.execute("INSERT OR IGNORE INTO institutes (name, position) VALUES (?, ?)", (name.strip(), pos))
+    conn.commit()
+
+
+def delete_institute(name: str) -> None:
+    _c().execute("DELETE FROM institutes WHERE name = ?", (name,))
+    _c().commit()
+
+
+def list_departments() -> list[str]:
+    rows = _c().execute("SELECT name FROM departments ORDER BY position, name").fetchall()
+    return [r["name"] for r in rows]
+
+
+def add_department(name: str) -> None:
+    conn = _c()
+    pos = (conn.execute("SELECT MAX(position) FROM departments").fetchone()[0] or 0) + 1
+    conn.execute("INSERT OR IGNORE INTO departments (name, position) VALUES (?, ?)", (name.strip(), pos))
+    conn.commit()
+
+
+def delete_department(name: str) -> None:
+    conn = _c()
+    conn.execute("DELETE FROM departments WHERE name = ?", (name,))
+    conn.commit()
+
+
+def list_study_programs() -> list[str]:
+    rows = _c().execute("SELECT name FROM study_programs ORDER BY position, name").fetchall()
+    return [r["name"] for r in rows]
+
+
+def add_study_program(name: str) -> None:
+    conn = _c()
+    pos = (conn.execute("SELECT MAX(position) FROM study_programs").fetchone()[0] or 0) + 1
+    conn.execute("INSERT OR IGNORE INTO study_programs (name, position) VALUES (?, ?)", (name.strip(), pos))
+    conn.commit()
+
+
+def delete_study_program(name: str) -> None:
+    conn = _c()
+    conn.execute("DELETE FROM study_programs WHERE name = ?", (name,))
+    conn.commit()
+
+
 # ── Заявки на проект (2.12) ────────────────────────────────────────────────
 APPLICATION_COLUMNS = [
     "project_name", "org_name", "source", "department", "description",

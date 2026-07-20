@@ -138,6 +138,24 @@ CREATE TABLE IF NOT EXISTS memes (
     image_path TEXT
 );
 
+CREATE TABLE IF NOT EXISTS institutes (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    name     TEXT UNIQUE NOT NULL,
+    position INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS departments (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    name     TEXT UNIQUE NOT NULL,
+    position INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS study_programs (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    name     TEXT UNIQUE NOT NULL,
+    position INTEGER DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS applications (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id            INTEGER,
@@ -182,6 +200,14 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE users ADD COLUMN was_admin INTEGER DEFAULT 0")
     if "education_program" not in existing:
         conn.execute("ALTER TABLE users ADD COLUMN education_program TEXT")
+    # Создаём таблицы справочников если ещё нет
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+    if "institutes" not in tables:
+        conn.execute("CREATE TABLE IF NOT EXISTS institutes (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, position INTEGER DEFAULT 0)")
+    if "departments" not in tables:
+        conn.execute("CREATE TABLE IF NOT EXISTS departments (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, position INTEGER DEFAULT 0)")
+    if "study_programs" not in tables:
+        conn.execute("CREATE TABLE IF NOT EXISTS study_programs (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, position INTEGER DEFAULT 0)")
     conn.commit()
 
 
@@ -206,6 +232,24 @@ def _seed(conn: sqlite3.Connection) -> None:
         conn.execute(
             "INSERT INTO memes (code_word, text, image_path) VALUES (?, ?, ?)",
             ("служение", "Обучение служением — это сила! 💙", None),
+        )
+
+    # Наполняем справочники начальными данными если пусты
+    from .texts import INSTITUTES, DEPARTMENTS, STUDY_PROGRAMS
+    if conn.execute("SELECT COUNT(*) FROM institutes").fetchone()[0] == 0:
+        conn.executemany(
+            "INSERT OR IGNORE INTO institutes (name, position) VALUES (?, ?)",
+            [(name, i) for i, name in enumerate(INSTITUTES)],
+        )
+    if conn.execute("SELECT COUNT(*) FROM departments").fetchone()[0] == 0:
+        conn.executemany(
+            "INSERT OR IGNORE INTO departments (name, position) VALUES (?, ?)",
+            [(name, i) for i, name in enumerate(DEPARTMENTS)],
+        )
+    if conn.execute("SELECT COUNT(*) FROM study_programs").fetchone()[0] == 0:
+        conn.executemany(
+            "INSERT OR IGNORE INTO study_programs (name, position) VALUES (?, ?)",
+            [(name, i) for i, name in enumerate(STUDY_PROGRAMS)],
         )
 
     conn.commit()

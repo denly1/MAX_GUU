@@ -67,7 +67,7 @@ async def send_main_menu(user_id: int, greeting: Optional[str] = None) -> None:
         elif user["role"] == "teacher":
             menu_text += "👨‍🏫 Предложи свой проект или посмотри существующие."
         elif user["role"] == "partner":
-            menu_text += "🤝 Предложи проект для студентов ГУУ."
+            menu_text += "🤝 Предложи проект для студентов."
         elif user["role"] == "admin":
             menu_text += "Панель управления программой «Обучение служением»"
         

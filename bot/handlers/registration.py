@@ -79,7 +79,8 @@ async def reg_cb(event: MessageCallback, context: BaseContext) -> None:
     # reg:prog:<idx> — выбор направления студента
     if len(parts) == 3 and parts[1] == "prog":
         idx = int(parts[2])
-        program = texts.STUDY_PROGRAMS[idx]
+        progs = repo.list_study_programs()
+        program = progs[idx] if idx < len(progs) else ""
         await context.update_data(education_program=program)
         await context.set_state(Reg.group)
         await event.edit(
@@ -91,7 +92,8 @@ async def reg_cb(event: MessageCallback, context: BaseContext) -> None:
     # reg:dep:<idx> — выбор кафедры преподавателя
     if len(parts) == 3 and parts[1] == "dep":
         idx = int(parts[2])
-        dep = texts.DEPARTMENTS[idx]
+        deps = repo.list_departments()
+        dep = deps[idx] if idx < len(deps) else ""
         await context.update_data(department=dep)
         await context.set_state(Reg.teacher_programs)
         data = await context.get_data()
@@ -145,7 +147,8 @@ async def reg_cb(event: MessageCallback, context: BaseContext) -> None:
         programs_str = ",".join(str(i) for i in selected)
         await context.update_data(teacher_programs=programs_str)
         await context.set_state(Reg.phone)
-        names = [texts.STUDY_PROGRAMS[i] for i in selected if i < len(texts.STUDY_PROGRAMS)]
+        _progs = repo.list_study_programs()
+        names = [_progs[i] for i in selected if i < len(_progs)]
         await event.edit(
             text=f"Выбрано программ: {len(names)}\n\nУкажите ваш номер телефона в формате 8 ххх-ххх хх хх:",
             attachments=[keyboards.cancel_kb().as_markup()],

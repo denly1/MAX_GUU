@@ -15,7 +15,7 @@ from .. import config, keyboards, repo, texts
 from ..common_ui import full_name, require_role, send_main_menu
 from ..filters import CbPrefix
 from ..instance import bot
-from ..states import AdminManage
+from ..states import AdminManage, DirectoryAdmin
 
 router = Router(router_id="admin_panel")
 
@@ -43,6 +43,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         kb.row(CallbackButton(text="🔄 Переключение роли", payload="apanel:switch"))
         # Управление контентом
         kb.row(CallbackButton(text="Проекты", payload="tadm:menu"))
+        kb.row(CallbackButton(text="📖 Справочники", payload="dir:menu"))
         kb.row(CallbackButton(text="📝 Заявки", payload="apps:list"))
         kb.row(CallbackButton(text="🎭 Мемы", payload="meme:menu"))
         kb.row(CallbackButton(text="📞 Управление контактами", payload="admins:manage"))
@@ -250,6 +251,124 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
             attachments=[keyboards.users_paginated_list(users).as_markup()],
         )
         return
+
+
+# ── Справочники: институты, кафедры, направления ───────────────────────────
+@router.message_callback(CbPrefix("dir"))
+async def dir_cb(event: MessageCallback, context: BaseContext) -> None:
+    user_id = event.callback.user.user_id
+    if not require_role(user_id, "admin"):
+        await event.ack(notification="Доступно только администраторам")
+        return
+
+    parts = keyboards.parse_cb(event.callback.payload)
+    sub = parts[1] if len(parts) > 1 else ""
+
+    def _dir_list_kb(kind: str) -> InlineKeyboardBuilder:
+        kb = InlineKeyboardBuilder()
+        kb.row(CallbackButton(text="➕ Добавить", payload=f"dir:add:{kind}"))
+        if kind == "inst":
+            items = repo.list_institutes()
+        elif kind == "dep":
+            items = repo.list_departments()
+        else:
+            items = repo.list_study_programs()
+        for item in items:
+            kb.row(CallbackButton(
+                text=f"❌ {item[:55]}",
+                payload=f"dir:del:{kind}:{item[:55]}",
+            ))
+        kb.row(CallbackButton(text="◀️ Назад", payload="dir:menu"))
+        return kb
+
+    if not sub or sub == "menu":
+        kb = InlineKeyboardBuilder()
+        kb.row(CallbackButton(text="🏛 Институты", payload="dir:list:inst"))
+        kb.row(CallbackButton(text="📚 Кафедры", payload="dir:list:dep"))
+        kb.row(CallbackButton(text="🎓 Направления подготовки", payload="dir:list:prog"))
+        kb.row(CallbackButton(text="◀️ Назад", payload="apanel:main"))
+        await event.edit(
+            text="📖 Справочники\n\nВыберите, что хотите редактировать:",
+            attachments=[kb.as_markup()],
+        )
+        return
+
+    if sub == "list" and len(parts) > 2:
+        kind = parts[2]
+        titles = {"inst": "🏛 Институты", "dep": "📚 Кафедры", "prog": "🎓 Направления"}
+        if kind == "inst":
+            items = repo.list_institutes()
+        elif kind == "dep":
+            items = repo.list_departments()
+        else:
+            items = repo.list_study_programs()
+        await event.edit(
+            text=f"{titles.get(kind, kind)} ({len(items)})\n\nНажмите ❌ чтобы удалить или добавьте новое:",
+            attachments=[_dir_list_kb(kind).as_markup()],
+        )
+        return
+
+    if sub == "add" and len(parts) > 2:
+        kind = parts[2]
+        hints = {"inst": "название института", "dep": "название кафедры", "prog": "название направления подготовки"}
+        await context.clear()
+        await context.update_data(dir_kind=kind)
+        await context.set_state(DirectoryAdmin.add_value)
+        await event.edit(
+            text=f"Введите {hints.get(kind, 'значение')}:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
+    if sub == "del" and len(parts) > 3:
+        kind = parts[2]
+        name = ":".join(parts[3:])
+        if kind == "inst":
+            repo.delete_institute(name)
+        elif kind == "dep":
+            repo.delete_department(name)
+        else:
+            repo.delete_study_program(name)
+        await event.ack(notification="Удалено")
+        titles = {"inst": "🏛 Институты", "dep": "📚 Кафедры", "prog": "🎓 Направления"}
+        if kind == "inst":
+            items = repo.list_institutes()
+        elif kind == "dep":
+            items = repo.list_departments()
+        else:
+            items = repo.list_study_programs()
+        await event.edit(
+            text=f"{titles.get(kind, kind)} ({len(items)})\n\nНажмите ❌ чтобы удалить или добавьте новое:",
+            attachments=[_dir_list_kb(kind).as_markup()],
+        )
+        return
+
+
+@router.message_created(DirectoryAdmin.add_value, F.message.body.text)
+async def dir_add_value(event: MessageCreated, context: BaseContext) -> None:
+    data = await context.get_data()
+    kind = data.get("dir_kind", "")
+    name = (event.message.body.text or "").strip()
+    if not name:
+        await event.message.answer("Значение не может быть пустым:")
+        return
+    if kind == "inst":
+        repo.add_institute(name)
+        title = "Институт"
+    elif kind == "dep":
+        repo.add_department(name)
+        title = "Кафедра"
+    else:
+        repo.add_study_program(name)
+        title = "Направление"
+    await context.clear()
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="К списку", payload=f"dir:list:{kind}"))
+    kb.row(CallbackButton(text="Справочники", payload="dir:menu"))
+    await event.message.answer(
+        f"{title} «{name}» добавлен!",
+        attachments=[kb.as_markup()],
+    )
 
 
 # ── FSM: Добавление администратора ─────────────────────────────────────────

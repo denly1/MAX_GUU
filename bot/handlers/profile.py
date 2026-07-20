@@ -83,9 +83,9 @@ async def profile_cb(event: MessageCallback) -> None:
             text += f"\nКафедра: {user['department']}\n"
         ud = dict(user)
         if ud.get('teacher_programs'):
-            from .. import texts as _t
             ids = [int(x) for x in ud['teacher_programs'].split(',') if x.strip().isdigit()]
-            names = [_t.STUDY_PROGRAMS[i] for i in ids if i < len(_t.STUDY_PROGRAMS)]
+            _progs = repo.list_study_programs()
+            names = [_progs[i] for i in ids if i < len(_progs)]
             text += f"Программы: {', '.join(names)}\n"
     elif user['role'] == 'partner':
         if user['organization']:
@@ -314,9 +314,9 @@ async def profile_edit_button_cb(event: MessageCallback, context: BaseContext) -
         return
 
     if sub == "prog" and len(parts) > 2 and field == "education_program":
-        from .. import texts as _t
         idx = int(parts[2])
-        value = _t.STUDY_PROGRAMS[idx]
+        _progs = repo.list_study_programs()
+        value = _progs[idx] if idx < len(_progs) else ""
         repo.update_user_field(user_id, "education_program", value)
         await context.clear()
         await event.edit(
@@ -334,9 +334,9 @@ async def profile_edit_button_cb(event: MessageCallback, context: BaseContext) -
         return
 
     if sub == "dep" and len(parts) > 2 and field == "department":
-        from .. import texts as _t
         idx = int(parts[2])
-        value = _t.DEPARTMENTS[idx]
+        _deps = repo.list_departments()
+        value = _deps[idx] if idx < len(_deps) else ""
         repo.update_user_field(user_id, "department", value)
         await context.clear()
         await event.edit(

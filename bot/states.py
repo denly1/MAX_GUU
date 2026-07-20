@@ -154,3 +154,9 @@ class ProfileEdit(StatesGroup):
 
     field = State()
     value = State()
+
+
+class DirectoryAdmin(StatesGroup):
+    """Управление справочниками (институты, кафедры, программы)."""
+
+    add_value = State()
