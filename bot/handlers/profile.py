@@ -155,7 +155,7 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
         if field == "institute":
             await event.edit(
                 text="Выберите институт:",
-                attachments=[keyboards.institute_select().as_markup()],
+                attachments=[keyboards.profile_institute_select().as_markup()],
             )
             await context.set_state(ProfileEdit.value)
             await event.ack()
@@ -163,7 +163,7 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
         if field == "course":
             await event.edit(
                 text="Выберите курс:",
-                attachments=[keyboards.course_select().as_markup()],
+                attachments=[keyboards.profile_course_select().as_markup()],
             )
             await context.set_state(ProfileEdit.value)
             await event.ack()
@@ -171,7 +171,7 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
         if field == "education_program":
             await event.edit(
                 text="Выберите направление подготовки:",
-                attachments=[keyboards.study_program_select(1).as_markup()],
+                attachments=[keyboards.profile_study_program_select(1).as_markup()],
             )
             await context.set_state(ProfileEdit.value)
             await event.ack()
@@ -179,7 +179,7 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
         if field == "department":
             await event.edit(
                 text="Выберите кафедру:",
-                attachments=[keyboards.department_select(1).as_markup()],
+                attachments=[keyboards.profile_department_select(1).as_markup()],
             )
             await context.set_state(ProfileEdit.value)
             await event.ack()
@@ -278,7 +278,7 @@ async def profile_edit_value(event: MessageCreated, context: BaseContext) -> Non
     )
 
 
-@router.message_callback(ProfileEdit.value, CbPrefix("reg"))
+@router.message_callback(ProfileEdit.value, CbPrefix("prof"))
 async def profile_edit_button_cb(event: MessageCallback, context: BaseContext) -> None:
     """Обрабатывает кнопочный выбор для полей institute/course/education_program/department."""
     data = await context.get_data()
@@ -329,7 +329,7 @@ async def profile_edit_button_cb(event: MessageCallback, context: BaseContext) -
     if sub == "sp" and len(parts) > 2 and parts[2].isdigit() and field == "education_program":
         await event.edit(
             text="Выберите направление подготовки:",
-            attachments=[keyboards.study_program_select(int(parts[2])).as_markup()],
+            attachments=[keyboards.profile_study_program_select(int(parts[2])).as_markup()],
         )
         return
 
@@ -349,7 +349,7 @@ async def profile_edit_button_cb(event: MessageCallback, context: BaseContext) -
     if sub == "dp" and len(parts) > 2 and parts[2].isdigit() and field == "department":
         await event.edit(
             text="Выберите кафедру:",
-            attachments=[keyboards.department_select(int(parts[2])).as_markup()],
+            attachments=[keyboards.profile_department_select(int(parts[2])).as_markup()],
         )
         return
 

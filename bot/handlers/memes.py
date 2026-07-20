@@ -129,7 +129,10 @@ async def meme_image(event: MessageCreated, context: BaseContext) -> None:
 
 # ── Глобальный fallback: реакция на кодовое слово ──────────────────────────
 @router.message_created(F.message.body.text)
-async def code_word_listener(event: MessageCreated) -> None:
+async def code_word_listener(event: MessageCreated, context: BaseContext) -> None:
+    state = await context.get_state()
+    if state in (str(MemeAdmin.code_word), str(MemeAdmin.text), str(MemeAdmin.image)):
+        return
     text = (event.message.body.text or "").strip()
     meme = repo.get_meme(text)
     if meme:

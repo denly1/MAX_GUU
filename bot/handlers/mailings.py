@@ -182,7 +182,7 @@ async def call_cb(event: MessageCallback, context: BaseContext) -> None:
         )
         return
 
-    if sub == "teampick":
+    if sub == "teampick" and len(parts) > 2:
         team_id = int(parts[2])
         members = [m["user_id"] for m in repo.list_team_members(team_id)]
         team = repo.get_team(team_id)

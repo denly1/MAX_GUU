@@ -345,7 +345,11 @@ async def contact_photo_upload(event: MessageCreated, context: BaseContext) -> N
     """Загрузка фото."""
     photo_token = None
     for att in (event.message.body.attachments or []):
-        if hasattr(att, 'file_token'):
+        token = getattr(getattr(att, "payload", None), "token", None)
+        if token:
+            photo_token = token
+            break
+        if hasattr(att, "file_token") and att.file_token:
             photo_token = att.file_token
             break
     

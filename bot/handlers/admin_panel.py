@@ -42,7 +42,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         kb.row(CallbackButton(text="👥 Просмотр пользователей", payload="apanel:users"))
         kb.row(CallbackButton(text="🔄 Переключение роли", payload="apanel:switch"))
         # Управление контентом
-        kb.row(CallbackButton(text="📋 Проекты", payload="tadm:menu"))
+        kb.row(CallbackButton(text="Проекты", payload="tadm:menu"))
         kb.row(CallbackButton(text="📝 Заявки", payload="apps:list"))
         kb.row(CallbackButton(text="🎭 Мемы", payload="meme:menu"))
         kb.row(CallbackButton(text="📞 Управление контактами", payload="admins:manage"))

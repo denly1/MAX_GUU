@@ -267,3 +267,4 @@ async def reg_phone(event: MessageCreated, context: BaseContext) -> None:
     await context.clear()
     await event.message.answer(texts.REGISTRATION_DONE)
     await send_main_menu(user_id)
+

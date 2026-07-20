@@ -68,6 +68,7 @@ class TaskAdmin(StatesGroup):
     partner = State()
     description = State()
     max_teams = State()
+    education_program = State()
     program = State()
     edit_field = State()
     edit_value = State()
