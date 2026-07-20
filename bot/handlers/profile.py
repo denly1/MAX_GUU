@@ -27,7 +27,7 @@ async def profile_cb(event: MessageCallback) -> None:
     if not user or not user["role"]:
         await event.edit(
             text="Вы не зарегистрированы в системе.",
-            attachments=[keyboards.back_button().as_markup()],
+            attachments=[InlineKeyboardBuilder().row(keyboards.back_button()).as_markup()],
         )
         await event.ack()
         return

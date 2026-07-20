@@ -36,17 +36,19 @@ async def _bootstrap(user_id: int, chat_id: int | None, name: str | None) -> Non
     if user_id in config.ADMIN_IDS:
         if not user or user["role"] != "admin" or user["status"] != "verified":
             repo.set_user_role(user_id, "admin", status="verified")
-    # Если user_id НЕ в ADMIN_IDS, но в БД он админ - понижаем до студента
+    # Если user_id НЕ в ADMIN_IDS, но в БД он админ - понижаем только если он был добавлен автоматически через ADMIN_IDS
     elif user and user["role"] == "admin":
         user_data = dict(user)
-        # Если пользователь был админом через админ-панель (was_admin=1), не понижаем
+        # was_admin=1 — назначен вручную через админ-панель — не трогаем
         if user_data.get("was_admin"):
             return
-        # Иначе проверяем, был ли он bootstrap-админом (не добавлен через админ-панель)
-        # Если в БД нет других данных (институт, кафедра и т.д.) - значит bootstrap
-        if not user_data.get("institute") and not user_data.get("department") and not user_data.get("organization"):
-            repo.set_user_role(user_id, "student", status="pending")
-            log.info(f"Понижен bootstrap-админ {user_id} до студента (убран из ADMIN_IDS)")
+        # Если у него есть любые регистрационные данные — не трогаем
+        if (user_data.get("last_name") or user_data.get("first_name")
+                or user_data.get("phone")):
+            return
+        # Только пустой bootstrap-админ без регистрации
+        repo.set_user_role(user_id, "student", status="pending")
+        log.info(f"Понижен bootstrap-админ {user_id} до студента (убран из ADMIN_IDS)")
 
 
 @router.bot_started()

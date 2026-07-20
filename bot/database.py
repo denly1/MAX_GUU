@@ -178,6 +178,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
     existing = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
     if "teacher_programs" not in existing:
         conn.execute("ALTER TABLE users ADD COLUMN teacher_programs TEXT")
+    if "was_admin" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN was_admin INTEGER DEFAULT 0")
+    if "education_program" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN education_program TEXT")
     conn.commit()
 
 

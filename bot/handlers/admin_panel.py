@@ -11,8 +11,8 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-from .. import config, keyboards, repo
-from ..common_ui import require_role, send_main_menu
+from .. import config, keyboards, repo, texts
+from ..common_ui import full_name, require_role, send_main_menu
 from ..filters import CbPrefix
 from ..instance import bot
 from ..states import AdminManage
@@ -196,6 +196,58 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         await event.edit(
             text=text,
             attachments=[keyboards.users_paginated_list(users, page=page).as_markup()],
+        )
+        return
+
+    # Просмотр профиля конкретного пользователя
+    if sub == "user" and len(parts) > 2:
+        target_id = int(parts[2])
+        target = repo.get_user(target_id)
+        if not target:
+            await event.ack(notification="Пользователь не найден")
+            return
+        role_label = texts.ROLE_LABELS.get(target["role"] or "", target["role"] or "—")
+        status_label = texts.STATUS_LABELS.get(target["status"] or "", target["status"] or "—")
+        fio = full_name(target)
+        lines = [
+            f"Пользователь #{target_id}",
+            f"ФИО: {fio}",
+            f"Роль: {role_label}",
+            f"Статус: {status_label}",
+        ]
+        if target["phone"]:
+            lines.append(f"Телефон: {target['phone']}")
+        if target["institute"]:
+            lines.append(f"Институт: {target['institute']}")
+        if target["department"]:
+            lines.append(f"Кафедра: {target['department']}")
+        if target["organization"]:
+            lines.append(f"Организация: {target['organization']}")
+        kb = InlineKeyboardBuilder()
+        kb.row(CallbackButton(text="Назначить админом",
+                              payload=f"apanel:make_admin:{target_id}"))
+        kb.row(CallbackButton(text="Назад", payload="apanel:users"))
+        await event.edit(text="\n".join(lines), attachments=[kb.as_markup()])
+        return
+
+    # Назначить админом из списка пользователей
+    if sub == "make_admin" and len(parts) > 2:
+        target_id = int(parts[2])
+        target = repo.get_user(target_id)
+        if target:
+            repo.set_user_role(target_id, "admin", status="verified")
+            await event.ack(notification="Пользователь назначен администратором")
+            try:
+                await bot.send_message(
+                    user_id=target_id,
+                    text="Вы назначены администратором системы «Обучение служением»."
+                )
+            except Exception:
+                pass
+        users = repo.list_all_users()
+        await event.edit(
+            text=f"Все пользователи\n\nВсего: {len(users)}",
+            attachments=[keyboards.users_paginated_list(users).as_markup()],
         )
         return
 
