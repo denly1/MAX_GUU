@@ -15,9 +15,12 @@ from .. import config, keyboards, repo, texts
 from ..common_ui import full_name, require_role, send_main_menu
 from ..filters import CbPrefix
 from ..instance import bot
-from ..states import AdminManage, DirectoryAdmin
+from ..states import AdminManage, AdminSearch, DirectoryAdmin
 
 router = Router(router_id="admin_panel")
+
+# Последний поисковый запрос по пользователям (для постраничной навигации).
+_last_user_query: dict[int, str] = {}
 
 
 # ── Главная админ-панель ───────────────────────────────────────────────────
@@ -37,7 +40,6 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     if not sub or sub == "main":
         kb = InlineKeyboardBuilder()
         # Управление пользователями
-        kb.row(CallbackButton(text="✓ Верификация", payload="ver:menu"))
         kb.row(CallbackButton(text="👤 Управление администраторами", payload="apanel:admins"))
         kb.row(CallbackButton(text="👥 Просмотр пользователей", payload="apanel:users"))
         kb.row(CallbackButton(text="🔄 Переключение роли", payload="apanel:switch"))
@@ -197,6 +199,29 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         await event.edit(
             text=text,
             attachments=[keyboards.users_paginated_list(users, page=page).as_markup()],
+        )
+        return
+
+    # Запрос поисковой строки по пользователям
+    if sub == "usersearch":
+        await context.clear()
+        await context.set_state(AdminSearch.users)
+        await event.edit(
+            text="🔍 Введите ФИО, ID или телефон для поиска:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
+    # Постраничная навигация по результатам поиска пользователей
+    if sub == "usearch":
+        page = 1
+        if len(parts) > 3 and parts[2] == "page" and parts[3].isdigit():
+            page = int(parts[3])
+        query = _last_user_query.get(user_id, "")
+        users = repo.search_users(query) if query else repo.list_all_users()
+        await event.edit(
+            text=f"🔍 Результаты поиска «{query}»: {len(users)}",
+            attachments=[keyboards.users_paginated_list(users, page=page, search_mode=True).as_markup()],
         )
         return
 
@@ -368,6 +393,23 @@ async def dir_add_value(event: MessageCreated, context: BaseContext) -> None:
     await event.message.answer(
         f"{title} «{name}» добавлен!",
         attachments=[kb.as_markup()],
+    )
+
+
+# ── FSM: Поиск пользователей ────────────────────────────────────────────────
+@router.message_created(AdminSearch.users, F.message.body.text)
+async def user_search_query(event: MessageCreated, context: BaseContext) -> None:
+    query = (event.message.body.text or "").strip()
+    if not query:
+        await event.message.answer("Введите непустой запрос для поиска:")
+        return
+    _, admin_id = event.get_ids()
+    _last_user_query[admin_id] = query
+    await context.clear()
+    users = repo.search_users(query)
+    await event.message.answer(
+        text=f"🔍 Результаты поиска «{query}»: {len(users)}",
+        attachments=[keyboards.users_paginated_list(users, page=1, search_mode=True).as_markup()],
     )
 
 

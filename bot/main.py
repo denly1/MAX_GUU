@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from maxapi.types import BotCommand
+
 from . import config
 from .database import init_db
 from .handlers import all_routers
@@ -39,6 +41,18 @@ async def main() -> None:
         await bot.delete_webhook()
     except Exception as e:  # noqa: BLE001
         log.debug("delete_webhook: %s", e)
+
+    # Регистрируем список команд бота, чтобы меню команд (значок "/") было
+    # доступно и в десктоп-версии MAX, и на Android (не только на iOS).
+    try:
+        await bot.set_my_commands(
+            BotCommand(name="/start", description="Запустить бота / главное меню"),
+            BotCommand(name="/menu", description="Открыть главное меню"),
+            BotCommand(name="/admin", description="Панель администратора"),
+            BotCommand(name="/id", description="Показать свой user_id"),
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning("Не удалось установить список команд бота: %s", e)
 
     log.info("Бот запущен (polling).")
     await dp.start_polling(bot)

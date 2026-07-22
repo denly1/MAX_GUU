@@ -386,18 +386,22 @@ def task_admin_menu() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(CallbackButton(text="Добавить задачу", payload="tadm:add"))
     kb.row(CallbackButton(text="Список задач", payload="tadm:list"))
+    kb.row(CallbackButton(text="🔍 Поиск задачи", payload="tadm:tsearch"))
     kb.row(CallbackButton(text="Выгрузить задачи в Excel",
                           payload="tadm:export"))
     kb.row(back_button())
     return kb
 
 
-def task_admin_list(tasks: Iterable[sqlite3.Row], page: int = 1) -> InlineKeyboardBuilder:
+def task_admin_list(tasks: Iterable[sqlite3.Row], page: int = 1,
+                     search_mode: bool = False) -> InlineKeyboardBuilder:
     items = []
     for t in tasks:
         flag = "🟢" if t["active"] else "🔴"
         items.append((f"{flag} {t['title']}", f"tadm:view:{t['id']}"))
-    kb = paginated_list(items, page, "tadm:list", items_per_page=10)
+    action_prefix = "tadm:tresults" if search_mode else "tadm:list"
+    kb = paginated_list(items, page, action_prefix, items_per_page=10)
+    kb.row(CallbackButton(text="🔍 Поиск", payload="tadm:tsearch"))
     kb.row(back_button("tadm:menu"))
     return kb
 
@@ -458,7 +462,8 @@ def paginated_list(items: list, page: int, action_prefix: str, items_per_page: i
     return kb
 
 
-def users_paginated_list(users: Iterable[sqlite3.Row], page: int = 1) -> InlineKeyboardBuilder:
+def users_paginated_list(users: Iterable[sqlite3.Row], page: int = 1,
+                          search_mode: bool = False) -> InlineKeyboardBuilder:
     """Пагинированный список пользователей для админ-панели."""
     items = []
     for u in users:
@@ -466,7 +471,9 @@ def users_paginated_list(users: Iterable[sqlite3.Row], page: int = 1) -> InlineK
         role_icon = {"student": "🎓", "teacher": "👨‍🏫", "partner": "🤝", "admin": "👤"}.get(u['role'], "❓")
         status_icon = {"verified": "✅", "pending": "⏳", "rejected": "❌"}.get(u['status'], "")
         items.append((f"{role_icon} {status_icon} {fio[:40]}", f"apanel:user:{u['user_id']}"))
-    kb = paginated_list(items, page, "apanel:users", items_per_page=10)
+    action_prefix = "apanel:usearch" if search_mode else "apanel:users"
+    kb = paginated_list(items, page, action_prefix, items_per_page=10)
+    kb.row(CallbackButton(text="🔍 Поиск", payload="apanel:usersearch"))
     kb.row(back_button("apanel:main"))
     return kb
 

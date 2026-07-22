@@ -120,6 +120,18 @@ def list_all_users() -> list[sqlite3.Row]:
     ).fetchall()
 
 
+def search_users(query: str) -> list[sqlite3.Row]:
+    """Ищет пользователей по подстроке в ФИО, имени пользователя или телефоне."""
+    like = f"%{query}%"
+    return _c().execute(
+        "SELECT * FROM users WHERE role IS NOT NULL AND ("
+        "last_name LIKE ? OR first_name LIKE ? OR patronymic LIKE ? "
+        "OR display_name LIKE ? OR phone LIKE ? OR CAST(user_id AS TEXT) LIKE ?"
+        ") ORDER BY created_at DESC",
+        (like, like, like, like, like, like),
+    ).fetchall()
+
+
 def list_users_by_status(status: str) -> list[sqlite3.Row]:
     return _c().execute(
         "SELECT * FROM users WHERE status = ? ORDER BY created_at", (status,)
@@ -320,6 +332,16 @@ def add_task(number: int | None, title: str, partner_name: str,
 
 def get_task(task_id: int) -> Optional[sqlite3.Row]:
     return _c().execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+
+
+def search_tasks(query: str) -> list[sqlite3.Row]:
+    """Ищет задачи по подстроке в названии, партнёре или описании."""
+    like = f"%{query}%"
+    return _c().execute(
+        "SELECT * FROM tasks WHERE title LIKE ? OR partner_name LIKE ? "
+        "OR description LIKE ? ORDER BY id DESC",
+        (like, like, like),
+    ).fetchall()
 
 
 def list_tasks(active_only: bool = False) -> list[sqlite3.Row]:
@@ -718,4 +740,14 @@ def get_application(app_id: int) -> Optional[sqlite3.Row]:
 def list_applications() -> list[sqlite3.Row]:
     return _c().execute(
         "SELECT * FROM applications ORDER BY id DESC"
+    ).fetchall()
+
+
+def search_applications(query: str) -> list[sqlite3.Row]:
+    """Ищет заявки по подстроке в названии проекта, организации или контакте."""
+    like = f"%{query}%"
+    return _c().execute(
+        "SELECT * FROM applications WHERE project_name LIKE ? OR org_name LIKE ? "
+        "OR contact_fio LIKE ? ORDER BY id DESC",
+        (like, like, like),
     ).fetchall()

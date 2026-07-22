@@ -12,9 +12,12 @@ from .. import keyboards, repo, reports, texts
 from ..common_ui import require_role
 from ..filters import CbPrefix
 from ..instance import bot
-from ..states import TaskAdmin
+from ..states import AdminSearch, TaskAdmin
 
 router = Router(router_id="task_admin")
+
+# Последний поисковый запрос по задачам (для постраничной навигации).
+_last_task_query: dict[int, str] = {}
 
 
 def _task_text(task) -> str:
@@ -64,6 +67,29 @@ async def tadm_cb(event: MessageCallback, context: BaseContext) -> None:
         await event.edit(
             text="Добавление задачи.\n\nВведите краткое название проекта:",
             attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
+    # Запрос поисковой строки по задачам
+    if sub == "tsearch":
+        await context.clear()
+        await context.set_state(AdminSearch.tasks)
+        await event.edit(
+            text="🔍 Введите название задачи или партнёра для поиска:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
+    # Постраничная навигация по результатам поиска задач
+    if sub == "tresults":
+        page = 1
+        if len(parts) >= 4 and parts[2] == "page" and parts[3].isdigit():
+            page = int(parts[3])
+        query = _last_task_query.get(user_id, "")
+        tasks = repo.search_tasks(query) if query else repo.list_tasks()
+        await event.edit(
+            text=f"🔍 Результаты поиска «{query}»: {len(tasks)}",
+            attachments=[keyboards.task_admin_list(tasks, page, search_mode=True).as_markup()],
         )
         return
 
@@ -220,6 +246,22 @@ async def tadm_cb(event: MessageCallback, context: BaseContext) -> None:
         except Exception as e:
             await bot.send_message(user_id=user_id, text=f"Ошибка при экспорте: {e}")
         return
+
+
+@router.message_created(AdminSearch.tasks, F.message.body.text)
+async def task_search_query(event: MessageCreated, context: BaseContext) -> None:
+    query = (event.message.body.text or "").strip()
+    if not query:
+        await event.message.answer("Введите непустой запрос для поиска:")
+        return
+    _, admin_id = event.get_ids()
+    _last_task_query[admin_id] = query
+    await context.clear()
+    tasks = repo.search_tasks(query)
+    await event.message.answer(
+        text=f"🔍 Результаты поиска «{query}»: {len(tasks)}",
+        attachments=[keyboards.task_admin_list(tasks, 1, search_mode=True).as_markup()],
+    )
 
 
 @router.message_created(TaskAdmin.title, F.message.body.text)

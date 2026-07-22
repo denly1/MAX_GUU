@@ -15,7 +15,6 @@ from .registration import router as registration_router
 from .statistics import router as statistics_router
 from .task_admin import router as task_admin_router
 from .tasks import router as tasks_router
-from .verification import router as verification_router
 
 # Порядок важен: специфичные роутеры раньше общего fallback.
 # memes_router содержит «ловушку» на любой текст (кодовые слова), поэтому
@@ -28,7 +27,6 @@ all_routers = [
     admin_contacts_router,
     admin_panel_router,
     statistics_router,
-    verification_router,
     tasks_router,
     task_admin_router,
     mailings_router,

@@ -19,8 +19,13 @@ router = Router(router_id="profile")
 
 
 @router.message_callback(CbPrefix("profile"))
-async def profile_cb(event: MessageCallback) -> None:
-    """Показывает профиль пользователя."""
+async def profile_cb(event: MessageCallback, context: BaseContext) -> None:
+    """Показывает профиль пользователя или делегирует в редактирование."""
+    parts = keyboards.parse_cb(event.callback.payload)
+    if len(parts) > 1 and parts[1] == "edit":
+        await profile_edit_cb(event, context)
+        return
+
     user_id = event.callback.user.user_id
     user = repo.get_user(user_id)
 
@@ -101,7 +106,6 @@ async def profile_cb(event: MessageCallback) -> None:
     await event.ack()
 
 
-@router.message_callback(CbPrefix("profile:edit"))
 async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
     """Меню редактирования профиля или начало редактирования поля."""
     parts = keyboards.parse_cb(event.callback.payload)

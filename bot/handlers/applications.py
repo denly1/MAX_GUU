@@ -17,11 +17,28 @@ from .. import keyboards, repo, reports, texts, validators
 from ..common_ui import notify_admins, require_role
 from ..filters import CbPrefix
 from ..instance import bot
-from ..states import Application
+from ..states import Application, AdminSearch
 
 router = Router(router_id="applications")
 
 SKIP_HINT = " (или «-», чтобы пропустить)"
+
+# Последний поисковый запрос по заявкам (для постраничной навигации).
+_last_app_query: dict[int, str] = {}
+
+
+def _apps_list_kb(apps: list, search_mode: bool = False, query: str = "") -> InlineKeyboardBuilder:
+    kb = InlineKeyboardBuilder()
+    if not search_mode:
+        kb.row(CallbackButton(text="📊 Выгрузить в Excel", payload="apps:export"))
+    kb.row(CallbackButton(text="🔍 Поиск", payload="apps:search"))
+    for a in apps[:30]:
+        kb.row(CallbackButton(
+            text=f"#{a['id']} {a['project_name']} — {a['org_name']}",
+            payload=f"apps:view:{a['id']}"
+        ))
+    kb.row(keyboards.back_button())
+    return kb
 
 
 def _source_kb() -> InlineKeyboardBuilder:
@@ -65,6 +82,22 @@ async def app_cb(event: MessageCallback, context: BaseContext) -> None:
                 text="Опишите проект в целом и роль студенческой команды в нём:",
                 attachments=[keyboards.cancel_kb().as_markup()])
         return
+
+
+@router.message_created(AdminSearch.applications, F.message.body.text)
+async def app_search_query(event: MessageCreated, context: BaseContext) -> None:
+    query = (event.message.body.text or "").strip()
+    if not query:
+        await event.message.answer("Введите непустой запрос для поиска:")
+        return
+    _, admin_id = event.get_ids()
+    _last_app_query[admin_id] = query
+    await context.clear()
+    apps = repo.search_applications(query)
+    await event.message.answer(
+        text=f"🔍 Результаты поиска «{query}»: {len(apps)}",
+        attachments=[_apps_list_kb(apps, search_mode=True).as_markup()],
+    )
 
 
 async def _next(event: MessageCreated, context: BaseContext, state, prompt: str):
@@ -257,7 +290,7 @@ def _format_application(a: dict) -> str:
 
 # ── Просмотр заявок администратором ────────────────────────────────────────
 @router.message_callback(CbPrefix("apps"))
-async def apps_list_cb(event: MessageCallback) -> None:
+async def apps_list_cb(event: MessageCallback, context: BaseContext) -> None:
     if not repo.is_admin(event.callback.user.user_id):
         await event.ack(notification="Недостаточно прав")
         return
@@ -285,23 +318,34 @@ async def apps_list_cb(event: MessageCallback) -> None:
         await event.edit(text=text, attachments=[keyboards.application_view(app_id).as_markup()])
         return
 
+    # Запрос поисковой строки по заявкам
+    if sub == "search":
+        await context.clear()
+        await context.set_state(AdminSearch.applications)
+        await event.edit(
+            text="🔍 Введите название проекта, организацию или ФИО контакта для поиска:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
+    # Результаты поиска заявок
+    if sub == "sresults":
+        query = _last_app_query.get(event.callback.user.user_id, "")
+        apps = repo.search_applications(query) if query else repo.list_applications()
+        text = f"🔍 Результаты поиска «{query}»: {len(apps)}"
+        await event.edit(text=text, attachments=[_apps_list_kb(apps, search_mode=True).as_markup()])
+        return
+
     apps = repo.list_applications()
     if not apps:
         text = "Заявок пока нет."
         kb = InlineKeyboardBuilder()
+        kb.row(CallbackButton(text="🔍 Поиск", payload="apps:search"))
         kb.row(keyboards.back_button())
         await event.edit(text=text, attachments=[kb.as_markup()])
         return
 
     text = "📥 Заявки на проекты:\n\nНажмите на заявку, чтобы посмотреть подробности."
-    kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="📊 Выгрузить в Excel", payload="apps:export"))
-    for a in apps[:30]:
-        kb.row(CallbackButton(
-            text=f"#{a['id']} {a['project_name']} — {a['org_name']}",
-            payload=f"apps:view:{a['id']}"
-        ))
-    kb.row(keyboards.back_button())
-    await event.edit(text=text, attachments=[kb.as_markup()])
+    await event.edit(text=text, attachments=[_apps_list_kb(apps).as_markup()])
 
 

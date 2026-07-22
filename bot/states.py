@@ -160,3 +160,11 @@ class DirectoryAdmin(StatesGroup):
     """Управление справочниками (институты, кафедры, программы)."""
 
     add_value = State()
+
+
+class AdminSearch(StatesGroup):
+    """Поиск в списках админ-панели (пользователи/задачи/заявки)."""
+
+    users = State()
+    tasks = State()
+    applications = State()
