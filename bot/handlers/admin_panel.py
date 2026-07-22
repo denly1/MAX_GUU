@@ -289,7 +289,7 @@ async def dir_cb(event: MessageCallback, context: BaseContext) -> None:
     parts = keyboards.parse_cb(event.callback.payload)
     sub = parts[1] if len(parts) > 1 else ""
 
-    def _dir_list_kb(kind: str) -> InlineKeyboardBuilder:
+    def _dir_list_kb(kind: str, page: int = 1, items_per_page: int = 20) -> InlineKeyboardBuilder:
         kb = InlineKeyboardBuilder()
         kb.row(CallbackButton(text="➕ Добавить", payload=f"dir:add:{kind}"))
         if kind == "inst":
@@ -298,11 +298,25 @@ async def dir_cb(event: MessageCallback, context: BaseContext) -> None:
             items = repo.list_departments()
         else:
             items = repo.list_study_programs()
-        for item in items:
+        total = len(items)
+        total_pages = (total + items_per_page - 1) // items_per_page if total else 1
+        page = max(1, min(page, total_pages))
+        start = (page - 1) * items_per_page
+        page_items = items[start:start + items_per_page]
+        for item in page_items:
             kb.row(CallbackButton(
                 text=f"❌ {item[:55]}",
                 payload=f"dir:del:{kind}:{item[:55]}",
             ))
+        # Навигация
+        nav = []
+        if page > 1:
+            nav.append(CallbackButton(text="◀️", payload=f"dir:list:{kind}:{page - 1}"))
+        nav.append(CallbackButton(text=f"{page}/{total_pages}", payload=f"dir:list:{kind}:{page}"))
+        if page < total_pages:
+            nav.append(CallbackButton(text="▶️", payload=f"dir:list:{kind}:{page + 1}"))
+        if nav:
+            kb.row(*nav)
         kb.row(CallbackButton(text="◀️ Назад", payload="dir:menu"))
         return kb
 
@@ -320,6 +334,7 @@ async def dir_cb(event: MessageCallback, context: BaseContext) -> None:
 
     if sub == "list" and len(parts) > 2:
         kind = parts[2]
+        page = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 1
         titles = {"inst": "🏛 Институты", "dep": "📚 Кафедры", "prog": "🎓 Направления"}
         if kind == "inst":
             items = repo.list_institutes()
@@ -327,9 +342,12 @@ async def dir_cb(event: MessageCallback, context: BaseContext) -> None:
             items = repo.list_departments()
         else:
             items = repo.list_study_programs()
+        total = len(items)
+        total_pages = (total + 20 - 1) // 20 if total else 1
+        page = max(1, min(page, total_pages))
         await event.edit(
-            text=f"{titles.get(kind, kind)} ({len(items)})\n\nНажмите ❌ чтобы удалить или добавьте новое:",
-            attachments=[_dir_list_kb(kind).as_markup()],
+            text=f"{titles.get(kind, kind)} ({total})\n\nНажмите ❌ чтобы удалить или добавьте новое:",
+            attachments=[_dir_list_kb(kind, page).as_markup()],
         )
         return
 
@@ -364,7 +382,7 @@ async def dir_cb(event: MessageCallback, context: BaseContext) -> None:
             items = repo.list_study_programs()
         await event.edit(
             text=f"{titles.get(kind, kind)} ({len(items)})\n\nНажмите ❌ чтобы удалить или добавьте новое:",
-            attachments=[_dir_list_kb(kind).as_markup()],
+            attachments=[_dir_list_kb(kind, 1).as_markup()],
         )
         return
 

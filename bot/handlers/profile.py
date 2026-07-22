@@ -34,7 +34,6 @@ async def profile_cb(event: MessageCallback, context: BaseContext) -> None:
             text="Вы не зарегистрированы в системе.",
             attachments=[InlineKeyboardBuilder().row(keyboards.back_button()).as_markup()],
         )
-        await event.ack()
         return
 
     role_labels = {
@@ -103,7 +102,6 @@ async def profile_cb(event: MessageCallback, context: BaseContext) -> None:
     kb.row(keyboards.back_button())
 
     await event.edit(text=text, attachments=[kb.as_markup()])
-    await event.ack()
 
 
 async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
@@ -139,7 +137,6 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
             text="Выберите, что хотите изменить:",
             attachments=[kb.as_markup()],
         )
-        await event.ack()
         return
 
     if len(parts) == 3:
@@ -162,7 +159,6 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
                 attachments=[keyboards.profile_institute_select().as_markup()],
             )
             await context.set_state(ProfileEdit.value)
-            await event.ack()
             return
         if field == "course":
             await event.edit(
@@ -170,7 +166,6 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
                 attachments=[keyboards.profile_course_select().as_markup()],
             )
             await context.set_state(ProfileEdit.value)
-            await event.ack()
             return
         if field == "education_program":
             await event.edit(
@@ -178,7 +173,6 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
                 attachments=[keyboards.profile_study_program_select(1).as_markup()],
             )
             await context.set_state(ProfileEdit.value)
-            await event.ack()
             return
         if field == "department":
             await event.edit(
@@ -186,7 +180,6 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
                 attachments=[keyboards.profile_department_select(1).as_markup()],
             )
             await context.set_state(ProfileEdit.value)
-            await event.ack()
             return
 
         field_names = {
@@ -209,7 +202,6 @@ async def profile_edit_cb(event: MessageCallback, context: BaseContext) -> None:
                   if hint else f"Введите новое значение для {fname}:"),
             attachments=[keyboards.cancel_kb().as_markup()],
         )
-        await event.ack()
         return
 
 
@@ -357,4 +349,4 @@ async def profile_edit_button_cb(event: MessageCallback, context: BaseContext) -
         )
         return
 
-    await event.ack()
+    await event.ack(notification="Выберите значение")
