@@ -17,8 +17,9 @@ from .task_admin import router as task_admin_router
 from .tasks import router as tasks_router
 
 # Порядок важен: специфичные роутеры раньше общего fallback.
-# memes_router содержит «ловушку» на любой текст (кодовые слова), поэтому
-# обязан быть ПОСЛЕДНИМ — иначе перехватит команды и ввод FSM других модулей.
+# feedback_router содержит «ловушку» на любой текст (пересылка админам),
+# поэтому обязан идти ПОСЛЕДНИМ — иначе перехватит FSM-ввод других модулей
+# (включая шаги добавления мема в memes_router: код слово/текст/картинка).
 all_routers = [
     common_router,
     registration_router,
@@ -31,6 +32,6 @@ all_routers = [
     task_admin_router,
     mailings_router,
     applications_router,
-    feedback_router,
     memes_router,
+    feedback_router,
 ]

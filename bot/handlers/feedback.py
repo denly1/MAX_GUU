@@ -16,6 +16,7 @@ from ..common_ui import notify_admins, notify_admins_with_markup, require_verifi
 from ..filters import CbPrefix
 from ..instance import bot
 from ..states import AnswerDialog, Feedback
+from .memes import send_meme
 
 router = Router(router_id="feedback")
 
@@ -192,17 +193,20 @@ async def forward_user_message(event: MessageCreated, context: BaseContext) -> N
     if not user_id:
         return
 
+    text = (event.message.body.text or "").strip()
+
+    # Кодовые слова мемов обрабатываем сразу (доступно всем, включая админов)
+    meme = repo.get_meme(text)
+    if meme:
+        await send_meme(event, meme)
+        return
+
     # Не пересылаем сообщения администраторов
     if repo.is_admin(user_id):
         return
 
     # Не пересылаем команды
-    text = (event.message.body.text or "").strip()
     if text.startswith("/"):
-        return
-
-    # Не пересылаем кодовые слова мемов (они обрабатываются memes_router)
-    if repo.get_meme(text):
         return
 
     user = repo.get_user(user_id)

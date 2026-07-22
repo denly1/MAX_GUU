@@ -52,6 +52,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         # Коммуникация
         kb.row(CallbackButton(text="📢 Рассылка", payload="mail:start"))
         kb.row(CallbackButton(text="📞 Созвон", payload="call:start"))
+        kb.row(CallbackButton(text="📋 Подтверждения", payload="evtresp:menu"))
         # Отчёты и статистика
         kb.row(CallbackButton(text="📊 Статистика", payload="stats"))
         kb.row(CallbackButton(text="📥 Экспорт", payload="expch:run"))

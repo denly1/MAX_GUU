@@ -26,7 +26,8 @@ def _meme_attachment(token: str | None):
     )
 
 
-async def _send_meme(event: MessageCreated, meme) -> None:
+async def send_meme(event: MessageCreated, meme) -> None:
+    """Отправляет мем пользователю. Используется также из feedback.py."""
     attachment = _meme_attachment(meme["image_path"])
     await event.message.answer(
         text=meme["text"] or "",
@@ -125,20 +126,3 @@ async def meme_image(event: MessageCreated, context: BaseContext) -> None:
         return
 
     await event.message.answer("Отправьте картинку для мема или «-», чтобы пропустить:")
-
-
-# ── Глобальный fallback: реакция на кодовое слово ──────────────────────────
-@router.message_created(F.message.body.text)
-async def code_word_listener(event: MessageCreated, context: BaseContext) -> None:
-    state = await context.get_state()
-    if state is not None:
-        state_str = str(state)
-        if "MemeAdmin" in state_str:
-            return
-    text = (event.message.body.text or "").strip()
-    meme = repo.get_meme(text)
-    if meme:
-        await _send_meme(event, meme)
-        return
-    # Не кодовое слово и не активный сценарий — подсказываем меню.
-    await event.message.answer("Не понимаю команду. Откройте меню: /menu")

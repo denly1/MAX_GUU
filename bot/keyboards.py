@@ -371,6 +371,48 @@ def event_response(event_id: int) -> InlineKeyboardBuilder:
     return kb
 
 
+# ── Просмотр подтверждений участия (админ) ─────────────────────────────────
+def event_view_button(event_id: int) -> InlineKeyboardBuilder:
+    """Кнопка быстрого перехода к подтверждениям сразу после рассылки."""
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="📋 Посмотреть подтверждения",
+                          payload=f"evtresp:view:{event_id}"))
+    return kb
+
+
+def events_list_menu(events: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
+    """Список рассылок/созвонов администратора с переходом к подтверждениям."""
+    kb = InlineKeyboardBuilder()
+    for e in events:
+        preview = (e["text"] or "").strip().replace("\n", " ")
+        if len(preview) > 40:
+            preview = preview[:40] + "…"
+        icon = "📞" if e["kind"] == "call" else "📨"
+        kb.row(CallbackButton(text=f"{icon} #{e['id']} {preview}",
+                              payload=f"evtresp:view:{e['id']}"))
+    kb.row(back_button())
+    return kb
+
+
+def event_responses_menu(event_id: int, yes: int, no: int, pending: int) -> InlineKeyboardBuilder:
+    """Меню с количеством ответов; каждая кнопка открывает список ФИО."""
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text=f"✅ Будут ({yes})",
+                          payload=f"evtresp:list:{event_id}:yes"))
+    kb.row(CallbackButton(text=f"❌ Не будут ({no})",
+                          payload=f"evtresp:list:{event_id}:no"))
+    kb.row(CallbackButton(text=f"⏳ Без ответа ({pending})",
+                          payload=f"evtresp:list:{event_id}:pending"))
+    kb.row(CallbackButton(text="⬅️ К списку рассылок", payload="evtresp:menu"))
+    return kb
+
+
+def event_responses_back(event_id: int) -> InlineKeyboardBuilder:
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="⬅️ Назад", payload=f"evtresp:view:{event_id}"))
+    return kb
+
+
 # ── Верификация (админ) ────────────────────────────────────────────────────
 def verify_actions(user_id: int) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()

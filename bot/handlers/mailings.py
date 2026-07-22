@@ -151,8 +151,8 @@ async def mail_text(event: MessageCreated, context: BaseContext) -> None:
     sent = await _broadcast(event_id, recipients, f"📣 Приглашение на мероприятие\n\n{text}")
     await event.message.answer(
         f"✅ Рассылка отправлена ({sent} получателей).\n"
-        f"Аудитория: {audience}.\n"
-        f"Посмотреть подтверждения: /responses {event_id}"
+        f"Аудитория: {audience}.",
+        attachments=[keyboards.event_view_button(event_id).as_markup()],
     )
 
 
@@ -243,8 +243,8 @@ async def call_link(event: MessageCreated, context: BaseContext) -> None:
         body += f"\n\nСсылка: {link}"
     sent = await _broadcast(event_id, recipients, body)
     await event.message.answer(
-        f"✅ Напоминание отправлено ({sent} получателей).\n"
-        f"Посмотреть подтверждения: /responses {event_id}"
+        f"✅ Напоминание отправлено ({sent} получателей).",
+        attachments=[keyboards.event_view_button(event_id).as_markup()],
     )
 
 
@@ -263,7 +263,73 @@ async def evt_cb(event: MessageCallback) -> None:
     await event.ack(notification=label)
 
 
-# ── Просмотр подтверждений (админ) ─────────────────────────────────────────
+def _render_response_names(rows: list[sqlite3.Row], status: str) -> str:
+    """Возвращает текстовый список ФИО для выбранного статуса ответа."""
+    if status == "yes":
+        filtered = [r for r in rows if r["response"] == "yes"]
+        title = "✅ Будут"
+    elif status == "no":
+        filtered = [r for r in rows if r["response"] == "no"]
+        title = "❌ Не будут"
+    else:
+        filtered = [r for r in rows if not r["response"]]
+        title = "⏳ Без ответа"
+    names = [f"• {full_name(r)}" for r in filtered] or ["— пока никого —"]
+    return f"{title} ({len(filtered)}):\n" + "\n".join(names)
+
+
+# ── Просмотр подтверждений (админ, кнопочный интерфейс) ────────────────────
+@router.message_callback(CbPrefix("evtresp"))
+async def evtresp_cb(event: MessageCallback) -> None:
+    if not _guard(event.callback.user.user_id):
+        await event.ack(notification="Недостаточно прав")
+        return
+    parts = keyboards.parse_cb(event.callback.payload)
+    sub = parts[1] if len(parts) > 1 else ""
+
+    if sub == "menu":
+        events = repo.list_events_by_admin(event.callback.user.user_id)
+        await event.edit(
+            text="📋 Ваши рассылки и созвоны.\nВыберите, чтобы посмотреть подтверждения:",
+            attachments=[keyboards.events_list_menu(events).as_markup()],
+        )
+        return
+
+    if sub == "view" and len(parts) > 2:
+        event_id = int(parts[2])
+        rows = repo.list_event_responses(event_id)
+        if not rows:
+            await event.edit(
+                text="По этой рассылке пока нет получателей.",
+                attachments=[keyboards.event_responses_menu(event_id, 0, 0, 0).as_markup()],
+            )
+            return
+        yes = [r for r in rows if r["response"] == "yes"]
+        no = [r for r in rows if r["response"] == "no"]
+        pending = [r for r in rows if not r["response"]]
+        event_obj = repo.get_event(event_id)
+        preview = (event_obj["text"] or "").strip().replace("\n", " ")[:80] if event_obj else ""
+        text = f"📋 Подтверждения по рассылке #{event_id}\n{preview}\n\nВыберите группу:"
+        await event.edit(
+            text=text,
+            attachments=[keyboards.event_responses_menu(
+                event_id, len(yes), len(no), len(pending)
+            ).as_markup()],
+        )
+        return
+
+    if sub == "list" and len(parts) > 3:
+        event_id = int(parts[2])
+        status = parts[3]
+        rows = repo.list_event_responses(event_id)
+        text = _render_response_names(rows, status)
+        await event.edit(
+            text=text,
+            attachments=[keyboards.event_responses_back(event_id).as_markup()],
+        )
+        return
+
+
 @router.message_created(Command("responses"))
 async def responses_cmd(event: MessageCreated) -> None:
     _, admin_id = event.get_ids()
@@ -272,7 +338,11 @@ async def responses_cmd(event: MessageCreated) -> None:
     text = (event.message.body.text or "").strip()
     parts = text.split()
     if len(parts) < 2 or not parts[1].isdigit():
-        await event.message.answer("Использование: /responses <id_рассылки>")
+        events = repo.list_events_by_admin(admin_id)
+        await event.message.answer(
+            "📋 Ваши рассылки и созвоны.\nВыберите, чтобы посмотреть подтверждения:",
+            attachments=[keyboards.events_list_menu(events).as_markup()],
+        )
         return
     event_id = int(parts[1])
     rows = repo.list_event_responses(event_id)
@@ -282,11 +352,10 @@ async def responses_cmd(event: MessageCreated) -> None:
     yes = [r for r in rows if r["response"] == "yes"]
     no = [r for r in rows if r["response"] == "no"]
     pending = [r for r in rows if not r["response"]]
-    lines = [f"Подтверждения по рассылке #{event_id}:\n"]
-    lines.append(f"✅ Будут ({len(yes)}):")
-    lines += [f"  • {full_name(r)}" for r in yes] or ["  —"]
-    lines.append(f"\n❌ Не будут ({len(no)}):")
-    lines += [f"  • {full_name(r)}" for r in no] or ["  —"]
-    lines.append(f"\n⏳ Без ответа ({len(pending)}):")
-    lines += [f"  • {full_name(r)}" for r in pending] or ["  —"]
-    await event.message.answer("\n".join(lines))
+    text = f"📋 Подтверждения по рассылке #{event_id}\n\nВыберите группу:"
+    await event.message.answer(
+        text,
+        attachments=[keyboards.event_responses_menu(
+            event_id, len(yes), len(no), len(pending)
+        ).as_markup()],
+    )
