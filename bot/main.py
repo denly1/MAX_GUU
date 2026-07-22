@@ -48,7 +48,6 @@ async def main() -> None:
         await bot.set_my_commands(
             BotCommand(name="/start", description="Запустить бота / главное меню"),
             BotCommand(name="/menu", description="Открыть главное меню"),
-            BotCommand(name="/admin", description="Панель администратора"),
             BotCommand(name="/id", description="Показать свой user_id"),
         )
     except Exception as e:  # noqa: BLE001
