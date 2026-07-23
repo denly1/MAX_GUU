@@ -228,7 +228,7 @@ def _seed(conn: sqlite3.Connection) -> None:
         )
 
     # Дефолтный мем-пример (код можно поменять через админ-меню)
-    if conn.execute("SELECT COUNT(*) FROM memes").fetchone()[0] == 0:
+    if DEFAULT_MEME and conn.execute("SELECT COUNT(*) FROM memes").fetchone()[0] == 0:
         conn.execute(
             "INSERT INTO memes (code_word, text, image_path) VALUES (?, ?, ?)",
             tuple(DEFAULT_MEME),

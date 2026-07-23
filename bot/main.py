@@ -32,7 +32,7 @@ async def main() -> None:
         log.info("Bootstrap-администраторы: %s", sorted(config.ADMIN_IDS))
     else:
         log.warning(
-            "ADMIN_IDS пуст — некому верифицировать пользователей. "
+            "ADMIN_IDS пуст — автоматическое назначение администраторов отключено. "
             "Узнайте свой id командой /id и добавьте его в .env."
         )
 

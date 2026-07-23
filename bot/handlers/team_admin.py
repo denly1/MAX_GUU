@@ -101,7 +101,12 @@ async def teamadm_cb(event: MessageCallback, context: BaseContext) -> None:
         team_id = int(parts[2])
         members = repo.list_team_members(team_id)
         if not members:
-            await event.edit(text="В команде пока нет участников.")
+            kb = InlineKeyboardBuilder()
+            kb.row(keyboards.back_button(f"teamadm:view:{team_id}"))
+            await event.edit(
+                text="В команде пока нет участников.",
+                attachments=[kb.as_markup()],
+            )
             return
         kb = InlineKeyboardBuilder()
         for m in members:
@@ -156,7 +161,12 @@ async def teamadm_cb(event: MessageCallback, context: BaseContext) -> None:
         await event.ack(notification="Участник исключён")
         members = repo.list_team_members(team_id)
         if not members:
-            await event.edit(text="В команде пока нет участников.")
+            kb = InlineKeyboardBuilder()
+            kb.row(keyboards.back_button(f"teamadm:view:{team_id}"))
+            await event.edit(
+                text="В команде пока нет участников.",
+                attachments=[kb.as_markup()],
+            )
             return
         kb = InlineKeyboardBuilder()
         for m in members:
