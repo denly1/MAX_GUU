@@ -10,13 +10,42 @@ import contextlib
 import os
 from pathlib import Path
 
+# Корень проекта (на уровень выше пакета bot/)
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _load_env_file(path: Path, overwrite: bool = False) -> None:
+    """Простой парсер .env: KEY='value' / KEY=value."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if not value:
+            continue
+        if value.startswith("'") and value.endswith("'") and len(value) >= 2:
+            value = value[1:-1]
+        elif value.startswith('"') and value.endswith('"') and len(value) >= 2:
+            value = value[1:-1].replace("\\n", "\n").replace("\\t", "\t").replace("\\\\", "\\").replace('\\"', '"')
+        if overwrite:
+            os.environ[key] = value
+        else:
+            os.environ.setdefault(key, value)
+
+
 with contextlib.suppress(ImportError):
     from dotenv import load_dotenv
 
-    load_dotenv()
+    load_dotenv(BASE_DIR / ".env")
+    load_dotenv(BASE_DIR / ".env.example")
 
-# Корень проекта (на уровень выше пакета bot/)
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Если python-dotenv не установлен — загружаем вручную (.env приоритетнее .env.example)
+_load_env_file(BASE_DIR / ".env", overwrite=True)
+_load_env_file(BASE_DIR / ".env.example", overwrite=False)
 
 #: Токен бота MAX
 BOT_TOKEN: str = os.getenv("MAX_BOT_TOKEN", "").strip()
