@@ -15,6 +15,7 @@ from .registration import router as registration_router
 from .statistics import router as statistics_router
 from .task_admin import router as task_admin_router
 from .tasks import router as tasks_router
+from .team_admin import router as team_admin_router
 
 # Порядок важен: специфичные роутеры раньше общего fallback.
 # feedback_router содержит «ловушку» на любой текст (пересылка админам),
@@ -30,6 +31,7 @@ all_routers = [
     statistics_router,
     tasks_router,
     task_admin_router,
+    team_admin_router,
     mailings_router,
     applications_router,
     memes_router,

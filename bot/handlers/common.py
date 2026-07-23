@@ -34,7 +34,7 @@ async def _bootstrap(user_id: int, chat_id: int | None, name: str | None) -> Non
     
     # Если user_id в ADMIN_IDS - делаем админом
     if user_id in config.ADMIN_IDS:
-        if not user or user["role"] != "admin" or user["status"] != "verified":
+        if not user or user["role"] != "admin":
             repo.set_user_role(user_id, "admin", status="verified")
     # Если user_id НЕ в ADMIN_IDS, но в БД он админ - понижаем только если он был добавлен автоматически через ADMIN_IDS
     elif user and user["role"] == "admin":
@@ -47,7 +47,7 @@ async def _bootstrap(user_id: int, chat_id: int | None, name: str | None) -> Non
                 or user_data.get("phone")):
             return
         # Только пустой bootstrap-админ без регистрации
-        repo.set_user_role(user_id, "student", status="pending")
+        repo.set_user_role(user_id, "student", status="verified")
         log.info(f"Понижен bootstrap-админ {user_id} до студента (убран из ADMIN_IDS)")
 
 

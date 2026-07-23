@@ -315,7 +315,46 @@ async def apps_list_cb(event: MessageCallback, context: BaseContext) -> None:
             await event.ack(notification="Заявка не найдена")
             return
         text = _format_application(dict(a))
-        await event.edit(text=text, attachments=[keyboards.application_view(app_id).as_markup()])
+        await event.edit(text=text, attachments=[keyboards.application_admin_actions(app_id).as_markup()])
+        return
+
+    if sub == "approve" and len(parts) > 2:
+        app_id = int(parts[2])
+        repo.set_application_status(app_id, "approved")
+        await event.ack(notification="Заявка одобрена")
+        a = repo.get_application(app_id)
+        text = _format_application(dict(a))
+        await event.edit(text=text, attachments=[keyboards.application_admin_actions(app_id).as_markup()])
+        return
+
+    if sub == "reject" and len(parts) > 2:
+        app_id = int(parts[2])
+        repo.set_application_status(app_id, "rejected")
+        await event.ack(notification="Заявка отклонена")
+        a = repo.get_application(app_id)
+        text = _format_application(dict(a))
+        await event.edit(text=text, attachments=[keyboards.application_admin_actions(app_id).as_markup()])
+        return
+
+    if sub == "convert" and len(parts) > 2:
+        app_id = int(parts[2])
+        app = repo.get_application(app_id)
+        if not app:
+            await event.ack(notification="Заявка не найдена")
+            return
+        repo.add_task(
+            number=None,
+            title=app["project_name"],
+            partner_name=app["org_name"] or "",
+            description=app["description"] or "",
+            max_teams=1,
+            education_program=None,
+        )
+        repo.set_application_status(app_id, "converted")
+        await event.ack(notification="Проект создан")
+        a = repo.get_application(app_id)
+        text = _format_application(dict(a))
+        await event.edit(text=text, attachments=[keyboards.application_admin_actions(app_id).as_markup()])
         return
 
     # Запрос поисковой строки по заявкам

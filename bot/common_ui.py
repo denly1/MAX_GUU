@@ -30,29 +30,7 @@ async def send_main_menu(user_id: int, greeting: Optional[str] = None) -> None:
         )
         return
 
-    # Зарегистрирован, но ждёт подтверждения.
-    if user["status"] == "pending":
-        kb = keyboards.InlineKeyboardBuilder()
-        kb.row(keyboards.CallbackButton(
-            text="❓ Часто задаваемые вопросы", payload="faq"))
-        kb.row(keyboards.CallbackButton(
-            text="📋 Контакты администраторов", payload="admins"))
-        await bot.send_message(
-            user_id=user_id,
-            text=greeting or texts.NEED_VERIFICATION,
-            attachments=[kb.as_markup()],
-        )
-        return
-
-    if user["status"] == "rejected":
-        await bot.send_message(
-            user_id=user_id,
-            text=texts.REJECTED_NOTICE,
-            attachments=[keyboards.pre_registration_menu().as_markup()],
-        )
-        return
-
-    # Подтверждён — полное меню по роли.
+    # Полное меню по роли.
     role_label = texts.ROLE_LABELS.get(user["role"], "")
     name = user["first_name"] or user["display_name"] or "Пользователь"
     
@@ -112,4 +90,4 @@ def require_verified(user_id: int) -> bool:
 
 def require_role(user_id: int, *roles: str) -> bool:
     user = repo.get_user(user_id)
-    return bool(user and user["status"] == "verified" and user["role"] in roles)
+    return bool(user and user["role"] in roles)

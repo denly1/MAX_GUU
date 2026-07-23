@@ -40,7 +40,7 @@ def upsert_user_contact(user_id: int, chat_id: int | None,
 
 
 def save_registration(user_id: int, role: str, fields: dict[str, Any],
-                      status: str = "pending") -> None:
+                      status: str = "verified") -> None:
     """Сохраняет данные регистрации. fields — словарь колонок users."""
     conn = _c()
     columns = ["role", "status"] + list(fields.keys())
@@ -50,13 +50,6 @@ def save_registration(user_id: int, role: str, fields: dict[str, Any],
         f"UPDATE users SET {placeholders} WHERE user_id = ?",
         (*values, user_id),
     )
-    conn.commit()
-
-
-def set_user_status(user_id: int, status: str) -> None:
-    conn = _c()
-    conn.execute("UPDATE users SET status = ? WHERE user_id = ?",
-                 (status, user_id))
     conn.commit()
 
 
@@ -89,19 +82,28 @@ def set_was_admin(user_id: int, was_admin: int = 1) -> None:
     conn.commit()
 
 
+def delete_user(user_id: int) -> None:
+    """Удаляет пользователя и его членство в командах."""
+    conn = _c()
+    conn.execute("DELETE FROM team_members WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+    conn.commit()
+
+
 def is_admin(user_id: int) -> bool:
     row = get_user(user_id)
-    return bool(row and row["role"] == "admin" and row["status"] == "verified")
+    return bool(row and row["role"] == "admin")
 
 
 def is_verified(user_id: int) -> bool:
+    """Теперь проверяет только наличие роли (верификация убрана)."""
     row = get_user(user_id)
-    return bool(row and row["status"] == "verified")
+    return bool(row and row["role"])
 
 
 def list_admin_user_ids() -> list[int]:
     rows = _c().execute(
-        "SELECT user_id FROM users WHERE role = 'admin' AND status = 'verified'"
+        "SELECT user_id FROM users WHERE role = 'admin'"
     ).fetchall()
     return [r["user_id"] for r in rows]
 
@@ -109,7 +111,7 @@ def list_admin_user_ids() -> list[int]:
 def list_admins() -> list[sqlite3.Row]:
     """Возвращает всех администраторов."""
     return _c().execute(
-        "SELECT * FROM users WHERE role = 'admin' AND status = 'verified' ORDER BY created_at"
+        "SELECT * FROM users WHERE role = 'admin' ORDER BY created_at"
     ).fetchall()
 
 
@@ -132,41 +134,35 @@ def search_users(query: str) -> list[sqlite3.Row]:
     ).fetchall()
 
 
-def list_users_by_status(status: str) -> list[sqlite3.Row]:
-    return _c().execute(
-        "SELECT * FROM users WHERE status = ? ORDER BY created_at", (status,)
-    ).fetchall()
-
-
 def list_all_active_users() -> list[sqlite3.Row]:
-    """Верифицированные пользователи с известным chat_id/user_id."""
+    """Пользователи с ролью (студенты, преподаватели, партнёры, админы)."""
     return _c().execute(
-        "SELECT * FROM users WHERE status = 'verified'"
+        "SELECT * FROM users WHERE role IS NOT NULL"
     ).fetchall()
 
 
 def list_students() -> list[sqlite3.Row]:
     return _c().execute(
-        "SELECT * FROM users WHERE role = 'student' AND status = 'verified'"
+        "SELECT * FROM users WHERE role = 'student'"
     ).fetchall()
 
 
 def list_teachers() -> list[sqlite3.Row]:
     return _c().execute(
-        "SELECT * FROM users WHERE role = 'teacher' AND status = 'verified'"
+        "SELECT * FROM users WHERE role = 'teacher'"
     ).fetchall()
 
 
 def list_partners() -> list[sqlite3.Row]:
     return _c().execute(
-        "SELECT * FROM users WHERE role = 'partner' AND status = 'verified'"
+        "SELECT * FROM users WHERE role = 'partner'"
     ).fetchall()
 
 
 def list_student_user_ids() -> list[int]:
-    """Возвращает user_id всех подтверждённых студентов."""
+    """Возвращает user_id всех студентов."""
     rows = _c().execute(
-        "SELECT user_id FROM users WHERE role = 'student' AND status = 'verified'"
+        "SELECT user_id FROM users WHERE role = 'student'"
     ).fetchall()
     return [r[0] for r in rows]
 
@@ -517,6 +513,53 @@ def set_team_task(team_id: int, task_id: int) -> None:
     conn.commit()
 
 
+def update_team(team_id: int, **fields: Any) -> None:
+    """Обновляет поля команды (name, password, task_id, leader_id)."""
+    allowed = {"name", "password", "task_id", "leader_id"}
+    if not fields or not allowed.issuperset(fields.keys()):
+        raise ValueError("Недопустимые поля команды")
+    placeholders = ", ".join(f"{k} = ?" for k in fields)
+    values = list(fields.values()) + [team_id]
+    conn = _c()
+    conn.execute(f"UPDATE teams SET {placeholders} WHERE id = ?", values)
+    conn.commit()
+
+
+def delete_team(team_id: int) -> None:
+    """Удаляет команду и всех её участников."""
+    conn = _c()
+    conn.execute("DELETE FROM team_members WHERE team_id = ?", (team_id,))
+    conn.execute("DELETE FROM teams WHERE id = ?", (team_id,))
+    conn.commit()
+
+
+def remove_team_member(team_id: int, user_id: int) -> None:
+    conn = _c()
+    conn.execute(
+        "DELETE FROM team_members WHERE team_id = ? AND user_id = ?",
+        (team_id, user_id),
+    )
+    conn.commit()
+
+
+def set_team_leader(team_id: int, user_id: int) -> None:
+    """Меняет лидера команды."""
+    conn = _c()
+    conn.execute(
+        "UPDATE team_members SET role_in_team = 'member' WHERE team_id = ?",
+        (team_id,),
+    )
+    conn.execute(
+        "UPDATE team_members SET role_in_team = 'leader' WHERE team_id = ? AND user_id = ?",
+        (team_id, user_id),
+    )
+    conn.execute(
+        "UPDATE teams SET leader_id = ? WHERE id = ?",
+        (user_id, team_id),
+    )
+    conn.commit()
+
+
 # ── Рассылки / события ─────────────────────────────────────────────────────
 def create_event(kind: str, text: str, link: str | None,
                  created_by: int) -> int:
@@ -617,7 +660,6 @@ def get_statistics() -> dict[str, int]:
     teachers = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'teacher'").fetchone()[0]
     partners = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'partner'").fetchone()[0]
     admins = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'").fetchone()[0]
-    pending = conn.execute("SELECT COUNT(*) FROM users WHERE status = 'pending'").fetchone()[0]
     
     # Проекты
     total_tasks = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
@@ -641,7 +683,6 @@ def get_statistics() -> dict[str, int]:
         'teachers': teachers,
         'partners': partners,
         'admins': admins,
-        'pending': pending,
         'total_tasks': total_tasks,
         'active_tasks': active_tasks,
         'inactive_tasks': inactive_tasks,
@@ -751,3 +792,10 @@ def search_applications(query: str) -> list[sqlite3.Row]:
         "OR contact_fio LIKE ? ORDER BY id DESC",
         (like, like, like),
     ).fetchall()
+
+
+def set_application_status(app_id: int, status: str) -> None:
+    """Устанавливает статус заявки (new, approved, rejected, converted)."""
+    conn = _c()
+    conn.execute("UPDATE applications SET status = ? WHERE id = ?", (status, app_id))
+    conn.commit()

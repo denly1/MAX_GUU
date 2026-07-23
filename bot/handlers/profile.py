@@ -43,16 +43,9 @@ async def profile_cb(event: MessageCallback, context: BaseContext) -> None:
         'admin': 'Администратор',
     }
 
-    status_labels = {
-        'pending': 'На верификации',
-        'verified': 'Подтверждён',
-        'rejected': 'Отклонён',
-    }
-
     text = "Мой профиль\n\n"
     text += f"ID: {user_id}\n"
-    text += f"Роль: {role_labels.get(user['role'], user['role'])}\n"
-    text += f"Статус: {status_labels.get(user['status'], user['status'])}\n\n"
+    text += f"Роль: {role_labels.get(user['role'], user['role'])}\n\n"
 
     fio_parts = [user['last_name'], user['first_name'], user['patronymic']]
     fio = " ".join(p for p in fio_parts if p)

@@ -11,11 +11,11 @@ from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.types.updates.message_created import MessageCreated
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-from .. import config, keyboards, repo, texts
+from .. import config, keyboards, repo, texts, validators
 from ..common_ui import full_name, require_role, send_main_menu
 from ..filters import CbPrefix
 from ..instance import bot
-from ..states import AdminManage, AdminSearch, DirectoryAdmin
+from ..states import AdminManage, AdminSearch, AdminUserEdit, DirectoryAdmin
 
 router = Router(router_id="admin_panel")
 
@@ -44,7 +44,8 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         kb.row(CallbackButton(text="👥 Просмотр пользователей", payload="apanel:users"))
         kb.row(CallbackButton(text="🔄 Переключение роли", payload="apanel:switch"))
         # Управление контентом
-        kb.row(CallbackButton(text="Проекты", payload="tadm:menu"))
+        kb.row(CallbackButton(text="🗂 Проекты", payload="tadm:menu"))
+        kb.row(CallbackButton(text="👥 Команды", payload="teamadm:menu"))
         kb.row(CallbackButton(text="📖 Справочники", payload="dir:menu"))
         kb.row(CallbackButton(text="📝 Заявки", payload="apps:list"))
         kb.row(CallbackButton(text="🎭 Мемы", payload="meme:menu"))
@@ -234,13 +235,11 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
             await event.ack(notification="Пользователь не найден")
             return
         role_label = texts.ROLE_LABELS.get(target["role"] or "", target["role"] or "—")
-        status_label = texts.STATUS_LABELS.get(target["status"] or "", target["status"] or "—")
         fio = full_name(target)
         lines = [
             f"Пользователь #{target_id}",
             f"ФИО: {fio}",
             f"Роль: {role_label}",
-            f"Статус: {status_label}",
         ]
         if target["phone"]:
             lines.append(f"Телефон: {target['phone']}")
@@ -251,6 +250,10 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         if target["organization"]:
             lines.append(f"Организация: {target['organization']}")
         kb = InlineKeyboardBuilder()
+        kb.row(CallbackButton(text="✏️ Редактировать",
+                              payload=f"apanel:uedit:{target_id}"))
+        kb.row(CallbackButton(text="🗑 Удалить",
+                              payload=f"apanel:udelete:{target_id}"))
         kb.row(CallbackButton(text="Назначить админом",
                               payload=f"apanel:make_admin:{target_id}"))
         kb.row(CallbackButton(text="Назад", payload="apanel:users"))
@@ -274,6 +277,47 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         users = repo.list_all_users()
         await event.edit(
             text=f"Все пользователи\n\nВсего: {len(users)}",
+            attachments=[keyboards.users_paginated_list(users).as_markup()],
+        )
+        return
+
+    # Редактирование пользователя
+    if sub == "uedit" and len(parts) > 2:
+        target_id = int(parts[2])
+        await event.edit(
+            text="Выберите поле для редактирования:",
+            attachments=[keyboards.admin_user_edit_fields(target_id).as_markup()],
+        )
+        return
+
+    if sub == "uedit_field" and len(parts) > 3:
+        target_id = int(parts[2])
+        field = parts[3]
+        await context.clear()
+        await context.update_data(edit_user_id=target_id, edit_user_field=field)
+        await context.set_state(AdminUserEdit.value)
+        await event.edit(
+            text="Введите новое значение:",
+            attachments=[keyboards.cancel_kb().as_markup()],
+        )
+        return
+
+    if sub == "udelete" and len(parts) > 2:
+        target_id = int(parts[2])
+        await event.edit(
+            text=f"Удалить пользователя #{target_id}?",
+            attachments=[keyboards.confirm_kb(
+                f"apanel:udelete_confirm:{target_id}", "apanel:users"
+            ).as_markup()],
+        )
+        return
+
+    if sub == "udelete_confirm" and len(parts) > 2:
+        target_id = int(parts[2])
+        repo.delete_user(target_id)
+        users = repo.list_all_users()
+        await event.edit(
+            text=f"Пользователь удалён.\n\nВсего пользователей: {len(users)}",
             attachments=[keyboards.users_paginated_list(users).as_markup()],
         )
         return
@@ -503,3 +547,29 @@ async def admin_command(event: MessageCreated, context: BaseContext) -> None:
     else:
         # Обычный пользователь не может стать админом
         await event.message.answer("У вас нет прав администратора")
+
+
+# ── FSM: Редактирование пользователя администратором ───────────────────────
+@router.message_created(AdminUserEdit.value, F.message.body.text)
+async def edit_user_value(event: MessageCreated, context: BaseContext) -> None:
+    text = (event.message.body.text or "").strip()
+    data = await context.get_data()
+    target_id = data.get("edit_user_id")
+    field = data.get("edit_user_field")
+    if not target_id or not field:
+        await context.clear()
+        return
+
+    if field == "phone":
+        ok, phone = validators.validate_phone(text)
+        if not ok:
+            await event.message.answer(validators.PHONE_ERROR)
+            return
+        text = phone
+
+    repo.update_user_field(target_id, field, text)
+    await context.clear()
+    await event.message.answer(
+        "Значение обновлено.",
+        attachments=[keyboards.main_menu_kb().as_markup()],
+    )

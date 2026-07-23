@@ -168,3 +168,21 @@ class AdminSearch(StatesGroup):
     users = State()
     tasks = State()
     applications = State()
+
+
+class AdminUserEdit(StatesGroup):
+    """Редактирование пользователя администратором."""
+
+    value = State()
+
+
+class TeamAdmin(StatesGroup):
+    """Управление командами администратором."""
+
+    name = State()
+
+
+class ApplicationAdmin(StatesGroup):
+    """Обработка заявки администратором."""
+
+    max_teams = State()

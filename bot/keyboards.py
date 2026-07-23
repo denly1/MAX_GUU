@@ -511,8 +511,7 @@ def users_paginated_list(users: Iterable[sqlite3.Row], page: int = 1,
     for u in users:
         fio = f"{u['last_name'] or ''} {u['first_name'] or ''}".strip() or u['display_name'] or f"ID {u['user_id']}"
         role_icon = {"student": "🎓", "teacher": "👨‍🏫", "partner": "🤝", "admin": "👤"}.get(u['role'], "❓")
-        status_icon = {"verified": "✅", "pending": "⏳", "rejected": "❌"}.get(u['status'], "")
-        items.append((f"{role_icon} {status_icon} {fio[:40]}", f"apanel:user:{u['user_id']}"))
+        items.append((f"{role_icon} {fio[:40]}", f"apanel:user:{u['user_id']}"))
     action_prefix = "apanel:usearch" if search_mode else "apanel:users"
     kb = paginated_list(items, page, action_prefix, items_per_page=10)
     kb.row(CallbackButton(text="🔍 Поиск", payload="apanel:usersearch"))
@@ -606,6 +605,61 @@ def admin_contact_edit_menu(contact_id: int) -> InlineKeyboardBuilder:
     kb.row(CallbackButton(text="❌ Удалить контакт", 
                           payload=f"admins:delete:{contact_id}"))
     kb.row(back_button("admins:manage"))
+    return kb
+
+
+def admin_user_edit_fields(user_id: int) -> InlineKeyboardBuilder:
+    """Поля для редактирования пользователя админом."""
+    fields = [
+        ("Фамилия", "last_name"),
+        ("Имя", "first_name"),
+        ("Отчество", "patronymic"),
+        ("Телефон", "phone"),
+        ("Институт", "institute"),
+        ("Курс", "course"),
+        ("Группа", "group_name"),
+        ("Направление", "education_program"),
+        ("Кафедра", "department"),
+        ("Организация", "organization"),
+        ("Программы", "teacher_programs"),
+    ]
+    kb = InlineKeyboardBuilder()
+    for label, field in fields:
+        kb.row(CallbackButton(text=label, payload=f"apanel:uedit_field:{user_id}:{field}"))
+    kb.row(back_button(f"apanel:user:{user_id}"))
+    return kb
+
+
+def confirm_kb(yes_payload: str, no_payload: str = "menu") -> InlineKeyboardBuilder:
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="✅ Да", payload=yes_payload))
+    kb.row(CallbackButton(text="❌ Нет", payload=no_payload))
+    return kb
+
+
+def team_admin_actions(team_id: int) -> InlineKeyboardBuilder:
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="✏️ Переименовать", payload=f"teamadm:rename:{team_id}"))
+    kb.row(CallbackButton(text="👥 Участники", payload=f"teamadm:members:{team_id}"))
+    kb.row(CallbackButton(text="🗑 Удалить команду", payload=f"teamadm:delete:{team_id}"))
+    kb.row(back_button("teamadm:menu"))
+    return kb
+
+
+def team_member_actions(team_id: int, user_id: int) -> InlineKeyboardBuilder:
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="⭐ Сделать лидером", payload=f"teamadm:leader:{team_id}:{user_id}"))
+    kb.row(CallbackButton(text="🗑 Исключить", payload=f"teamadm:remove:{team_id}:{user_id}"))
+    kb.row(back_button(f"teamadm:members:{team_id}"))
+    return kb
+
+
+def application_admin_actions(app_id: int) -> InlineKeyboardBuilder:
+    kb = InlineKeyboardBuilder()
+    kb.row(CallbackButton(text="✅ Одобрить", payload=f"apps:approve:{app_id}"))
+    kb.row(CallbackButton(text="❌ Отклонить", payload=f"apps:reject:{app_id}"))
+    kb.row(CallbackButton(text="📋 В проекты", payload=f"apps:convert:{app_id}"))
+    kb.row(CallbackButton(text="К списку заявок", payload="apps:list"))
     return kb
 
 

@@ -32,8 +32,7 @@ async def stats_cb(event: MessageCallback) -> None:
         f"├─ 🎓 Студентов: {stats['students']}\n"
         f"├─ 👨‍🏫 Преподавателей: {stats['teachers']}\n"
         f"├─ 🤝 Партнёров: {stats['partners']}\n"
-        f"├─ ⚙️ Администраторов: {stats['admins']}\n"
-        f"└─ ⏳ На верификации: {stats['pending']}\n\n"
+        f"└─ ⚙️ Администраторов: {stats['admins']}\n\n"
         
         "🗂 Проекты:\n"
         f"├─ Всего задач: {stats['total_tasks']}\n"
