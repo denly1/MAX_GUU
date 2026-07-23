@@ -47,7 +47,7 @@ async def send_main_menu(user_id: int, greeting: Optional[str] = None) -> None:
         elif user["role"] == "partner":
             menu_text += "🤝 Предложи проект для студентов."
         elif user["role"] == "admin":
-            menu_text += "Панель управления программой «Обучение служением»"
+            menu_text += "⚙️ Панель управления программой «Обучение служением»"
         
     await bot.send_message(
         user_id=user_id,

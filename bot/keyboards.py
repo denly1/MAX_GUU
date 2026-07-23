@@ -25,10 +25,10 @@ def parse_cb(payload: str | None) -> list[str]:
 # ── Меню до регистрации ────────────────────────────────────────────────────
 def pre_registration_menu() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Часто задаваемые вопросы", payload="faq"))
-    kb.row(CallbackButton(text="Справочная информация об администраторах",
+    kb.row(CallbackButton(text="❓ Часто задаваемые вопросы", payload="faq"))
+    kb.row(CallbackButton(text="📞 Контакты администраторов",
                           payload="admins"))
-    kb.row(CallbackButton(text="Регистрация", payload="reg:start"))
+    kb.row(CallbackButton(text="📝 Регистрация", payload="reg:start"))
     return kb
 
 
@@ -38,31 +38,31 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
     
     if role == "student":
         # Основные функции студента
-        kb.row(CallbackButton(text="Выбор проекта", payload="task:menu"))
-        kb.row(CallbackButton(text="Примеры отчётности", payload="templates"))
+        kb.row(CallbackButton(text="🗂 Выбор проекта", payload="task:menu"))
+        kb.row(CallbackButton(text="📄 Примеры отчётности", payload="templates"))
         # Информация и помощь
-        kb.row(CallbackButton(text="Мой профиль", payload="profile"))
-        kb.row(CallbackButton(text="FAQ", payload="faq"))
-        kb.row(CallbackButton(text="Контакты", payload="admins"))
-        kb.row(CallbackButton(text="Обратная связь", payload="fb:start"))
+        kb.row(CallbackButton(text="👤 Мой профиль", payload="profile"))
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="📞 Контакты", payload="admins"))
+        kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
         
     elif role == "teacher":
         # Основные функции преподавателя
-        kb.row(CallbackButton(text="Подать заявку на проект", payload="app:start"))
-        kb.row(CallbackButton(text="Список проектов", payload="task:list"))
+        kb.row(CallbackButton(text="📝 Подать заявку", payload="app:start"))
+        kb.row(CallbackButton(text="🗂 Список проектов", payload="task:list"))
         # Информация и помощь
-        kb.row(CallbackButton(text="Мой профиль", payload="profile"))
-        kb.row(CallbackButton(text="FAQ", payload="faq"))
-        kb.row(CallbackButton(text="Контакты", payload="admins"))
-        kb.row(CallbackButton(text="Обратная связь", payload="fb:start"))
+        kb.row(CallbackButton(text="👤 Мой профиль", payload="profile"))
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="📞 Контакты", payload="admins"))
+        kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
         
     elif role == "partner":
         # Основные функции партнёра
-        kb.row(CallbackButton(text="Подать заявку на проект", payload="app:start"))
+        kb.row(CallbackButton(text="📝 Подать заявку", payload="app:start"))
         # Информация и помощь
-        kb.row(CallbackButton(text="FAQ", payload="faq"))
-        kb.row(CallbackButton(text="Контакты", payload="admins"))
-        kb.row(CallbackButton(text="Обратная связь", payload="fb:start"))
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="📞 Контакты", payload="admins"))
+        kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
         
     elif role == "admin":
         # Функционал администратора согласно ТЗ (раздел 3.3)
@@ -72,14 +72,14 @@ def main_menu(role: str) -> InlineKeyboardBuilder:
         kb.row(CallbackButton(text="💬 Обратная связь", payload="fb:start"))
     else:
         # Меню для незарегистрированных
-        kb.row(CallbackButton(text="FAQ", payload="faq"))
-        kb.row(CallbackButton(text="Контакты", payload="admins"))
+        kb.row(CallbackButton(text="❓ FAQ", payload="faq"))
+        kb.row(CallbackButton(text="📞 Контакты", payload="admins"))
         
     return kb
 
 
 def back_button(payload: str = "menu") -> CallbackButton:
-    return CallbackButton(text="Назад", payload=payload)
+    return CallbackButton(text="⬅️ Назад", payload=payload)
 
 
 # ── ЧаВо ───────────────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ def faq_list(items: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     for row in items:
         kb.row(CallbackButton(text=row["question"], payload=f"faq:q:{row['id']}"))
-    kb.row(CallbackButton(text="Задать свой вопрос", payload="faq:ask"))
+    kb.row(CallbackButton(text="✏️ Задать свой вопрос", payload="faq:ask"))
     kb.row(back_button())
     return kb
 
@@ -95,7 +95,7 @@ def faq_list(items: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
 def faq_manage(items: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     """Меню управления FAQ для администраторов."""
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Добавить FAQ", payload="faq:add"))
+    kb.row(CallbackButton(text="➕ Добавить FAQ", payload="faq:add"))
     for row in items:
         kb.row(
             CallbackButton(
@@ -113,9 +113,9 @@ def faq_manage(items: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
 
 def faq_back(is_admin: bool = False) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="К списку вопросов", payload="faq"))
+    kb.row(CallbackButton(text="📖 К списку вопросов", payload="faq"))
     if is_admin:
-        kb.row(CallbackButton(text="Управление FAQ", payload="faq:manage"))
+        kb.row(CallbackButton(text="⚙️ Управление FAQ", payload="faq:manage"))
     kb.row(back_button())
     return kb
 
@@ -123,9 +123,9 @@ def faq_back(is_admin: bool = False) -> InlineKeyboardBuilder:
 # ── Регистрация ────────────────────────────────────────────────────────────
 def role_select() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Студент", payload="reg:role:student"))
-    kb.row(CallbackButton(text="Преподаватель", payload="reg:role:teacher"))
-    kb.row(CallbackButton(text="Социальный заказчик", payload="reg:role:partner"))
+    kb.row(CallbackButton(text="🎓 Студент", payload="reg:role:student"))
+    kb.row(CallbackButton(text="👨‍🏫 Преподаватель", payload="reg:role:teacher"))
+    kb.row(CallbackButton(text="🤝 Социальный заказчик", payload="reg:role:partner"))
     return kb
 
 
@@ -150,7 +150,7 @@ def study_program_select(page: int = 1) -> InlineKeyboardBuilder:
     if page < total_pages:
         nav.append(CallbackButton(text="▶️", payload=f"reg:sp:{page + 1}"))
     kb.row(*nav)
-    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    kb.row(CallbackButton(text="🚫 Отмена", payload="cancel"))
     return kb
 
 
@@ -171,7 +171,7 @@ def department_select(page: int = 1) -> InlineKeyboardBuilder:
     if page < total_pages:
         nav.append(CallbackButton(text="▶️", payload=f"reg:dp:{page + 1}"))
     kb.row(*nav)
-    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    kb.row(CallbackButton(text="🚫 Отмена", payload="cancel"))
     return kb
 
 
@@ -196,7 +196,7 @@ def teacher_programs_select(page: int = 1, selected: list[int] | None = None) ->
     kb.row(*nav)
     if selected:
         kb.row(CallbackButton(text=f"Готово ({len(selected)} выбрано)", payload="reg:tpdone"))
-    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    kb.row(CallbackButton(text="🚫 Отмена", payload="cancel"))
     return kb
 
 
@@ -208,7 +208,7 @@ def task_program_select(page: int = 1) -> InlineKeyboardBuilder:
     page = max(1, min(page, total_pages))
     start = (page - 1) * items_per_page
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="— Без привязки к программе —", payload="tadm:prog:none"))
+    kb.row(CallbackButton(text="— ❌ Без привязки к программе —", payload="tadm:prog:none"))
     for idx, prog in enumerate(progs[start:start + items_per_page], start=start):
         kb.row(CallbackButton(text=prog[:60], payload=f"tadm:prog:{idx}"))
     nav = []
@@ -218,7 +218,7 @@ def task_program_select(page: int = 1) -> InlineKeyboardBuilder:
     if page < total_pages:
         nav.append(CallbackButton(text="▶️", payload=f"tadm:progp:{page + 1}"))
     kb.row(*nav)
-    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    kb.row(CallbackButton(text="🚫 Отмена", payload="cancel"))
     return kb
 
 
@@ -230,7 +230,7 @@ def task_edit_program_select(task_id: int, page: int = 1) -> InlineKeyboardBuild
     page = max(1, min(page, total_pages))
     start = (page - 1) * items_per_page
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="— Без привязки к программе —",
+    kb.row(CallbackButton(text="— ❌ Без привязки к программе —",
                           payload=f"tadm:edit_prog:{task_id}:none"))
     for idx, prog in enumerate(progs[start:start + items_per_page], start=start):
         kb.row(CallbackButton(text=prog[:60], payload=f"tadm:edit_prog:{task_id}:{idx}"))
@@ -242,7 +242,7 @@ def task_edit_program_select(task_id: int, page: int = 1) -> InlineKeyboardBuild
     if page < total_pages:
         nav.append(CallbackButton(text="▶️", payload=f"tadm:edit_progp:{task_id}:{page + 1}"))
     kb.row(*nav)
-    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    kb.row(CallbackButton(text="🚫 Отмена", payload="cancel"))
     return kb
 
 
@@ -290,9 +290,9 @@ def profile_study_program_select(page: int = 1) -> InlineKeyboardBuilder:
         kb.row(CallbackButton(text=prog, payload=f"prof:prog:{i}"))
     nav = []
     if page > 1:
-        nav.append(CallbackButton(text="◀ Назад", payload=f"prof:sp:{page - 1}"))
+        nav.append(CallbackButton(text="◀️ Назад", payload=f"prof:sp:{page - 1}"))
     if end < total:
-        nav.append(CallbackButton(text="Далее ▶", payload=f"prof:sp:{page + 1}"))
+        nav.append(CallbackButton(text="Далее ▶️", payload=f"prof:sp:{page + 1}"))
     if nav:
         kb.row(*nav)
     return kb
@@ -310,9 +310,9 @@ def profile_department_select(page: int = 1) -> InlineKeyboardBuilder:
         kb.row(CallbackButton(text=dep, payload=f"prof:dep:{i}"))
     nav = []
     if page > 1:
-        nav.append(CallbackButton(text="◀ Назад", payload=f"prof:dp:{page - 1}"))
+        nav.append(CallbackButton(text="◀️ Назад", payload=f"prof:dp:{page - 1}"))
     if end < total:
-        nav.append(CallbackButton(text="Далее ▶", payload=f"prof:dp:{page + 1}"))
+        nav.append(CallbackButton(text="Далее ▶️", payload=f"prof:dp:{page + 1}"))
     if nav:
         kb.row(*nav)
     return kb
@@ -321,8 +321,8 @@ def profile_department_select(page: int = 1) -> InlineKeyboardBuilder:
 # ── Выбор задачи (студент) ─────────────────────────────────────────────────
 def team_role_select() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Лидер команды", payload="task:role:leader"))
-    kb.row(CallbackButton(text="Участник команды", payload="task:role:member"))
+    kb.row(CallbackButton(text="⭐ Лидер команды", payload="task:role:leader"))
+    kb.row(CallbackButton(text="👥 Участник команды", payload="task:role:member"))
     kb.row(back_button())
     return kb
 
@@ -330,31 +330,31 @@ def team_role_select() -> InlineKeyboardBuilder:
 def task_choose_list(tasks: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     for t in tasks:
-        kb.row(CallbackButton(text=t["title"], payload=f"task:open:{t['id']}"))
+        kb.row(CallbackButton(text=f"🗂 {t['title']}", payload=f"task:open:{t['id']}"))
     kb.row(back_button())
     return kb
 
 
 def task_card_actions(task_id: int) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Выбрать задачу",
+    kb.row(CallbackButton(text="✅ Выбрать задачу",
                           payload=f"task:pick:{task_id}"))
-    kb.row(CallbackButton(text="Назад", payload="task:back_list"))
+    kb.row(CallbackButton(text="⬅️ Назад", payload="task:back_list"))
     return kb
 
 
 def task_confirm(task_id: int) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Подтвердить выбор",
+    kb.row(CallbackButton(text="✅ Подтвердить выбор",
                           payload=f"task:confirm:{task_id}"))
-    kb.row(CallbackButton(text="Назад", payload="task:back_list"))
+    kb.row(CallbackButton(text="⬅️ Назад", payload="task:back_list"))
     return kb
 
 
 def teams_join_list(teams: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     for t in teams:
-        kb.row(CallbackButton(text=t["name"], payload=f"task:join:{t['id']}"))
+        kb.row(CallbackButton(text=f"👥 {t['name']}", payload=f"task:join:{t['id']}"))
     kb.row(back_button())
     return kb
 
@@ -363,9 +363,9 @@ def teams_join_list(teams: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
 def event_response(event_id: int) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(
-        CallbackButton(text="Буду присутствовать",
+        CallbackButton(text="✅ Буду",
                        payload=f"evt:yes:{event_id}"),
-        CallbackButton(text="Не буду присутствовать",
+        CallbackButton(text="❌ Не буду",
                        payload=f"evt:no:{event_id}"),
     )
     return kb
@@ -417,8 +417,8 @@ def event_responses_back(event_id: int) -> InlineKeyboardBuilder:
 def verify_actions(user_id: int) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(
-        CallbackButton(text="Подтвердить", payload=f"ver:approve:{user_id}"),
-        CallbackButton(text="Отклонить", payload=f"ver:reject:{user_id}"),
+        CallbackButton(text="✅ Подтвердить", payload=f"ver:approve:{user_id}"),
+        CallbackButton(text="❌ Отклонить", payload=f"ver:reject:{user_id}"),
     )
     return kb
 
@@ -426,10 +426,10 @@ def verify_actions(user_id: int) -> InlineKeyboardBuilder:
 # ── Управление задачами (админ) ────────────────────────────────────────────
 def task_admin_menu() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Добавить задачу", payload="tadm:add"))
-    kb.row(CallbackButton(text="Список задач", payload="tadm:list"))
+    kb.row(CallbackButton(text="➕ Добавить задачу", payload="tadm:add"))
+    kb.row(CallbackButton(text="🗂 Список задач", payload="tadm:list"))
     kb.row(CallbackButton(text="🔍 Поиск задачи", payload="tadm:tsearch"))
-    kb.row(CallbackButton(text="Выгрузить задачи в Excel",
+    kb.row(CallbackButton(text="📥 Выгрузить в Excel",
                           payload="tadm:export"))
     kb.row(back_button())
     return kb
@@ -451,10 +451,10 @@ def task_admin_list(tasks: Iterable[sqlite3.Row], page: int = 1,
 def task_admin_actions(task_id: int, active: int) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(CallbackButton(text="✏️ Редактировать", payload=f"tadm:edit:{task_id}"))
-    toggle = "Деактивировать" if active else "Активировать"
+    toggle = "🔴 Деактивировать" if active else "🟢 Активировать"
     kb.row(CallbackButton(text=f"{toggle}",
                           payload=f"tadm:toggle:{task_id}"))
-    kb.row(CallbackButton(text="❌ Удалить", payload=f"tadm:del:{task_id}"))
+    kb.row(CallbackButton(text="🗑 Удалить", payload=f"tadm:del:{task_id}"))
     kb.row(back_button("tadm:list"))
     return kb
 
@@ -474,7 +474,7 @@ def task_edit_fields(task_id: int) -> InlineKeyboardBuilder:
 def application_view(app_id: int) -> InlineKeyboardBuilder:
     """Кнопка возврата к списку заявок."""
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="К списку заявок", payload="apps:list"))
+    kb.row(CallbackButton(text="📑 К списку заявок", payload="apps:list"))
     kb.row(back_button())
     return kb
 
@@ -522,9 +522,9 @@ def users_paginated_list(users: Iterable[sqlite3.Row], page: int = 1,
 # ── Мемы (админ) ───────────────────────────────────────────────────────────
 def memes_admin_menu(memes: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Добавить/изменить мем", payload="meme:add"))
+    kb.row(CallbackButton(text="➕ Добавить/изменить мем", payload="meme:add"))
     for m in memes:
-        kb.row(CallbackButton(text=f"Удалить {m['code_word']}",
+        kb.row(CallbackButton(text=f"🗑 Удалить {m['code_word']}",
                               payload=f"meme:del:{m['code_word']}"))
     kb.row(back_button())
     return kb
@@ -533,10 +533,10 @@ def memes_admin_menu(memes: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
 # ── Созвоны: выбор аудитории ───────────────────────────────────────────────
 def call_recipients_menu() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Конкретная команда", payload="call:team"))
-    kb.row(CallbackButton(text="Все студенты", payload="call:allst"))
-    kb.row(CallbackButton(text="Все преподаватели", payload="call:allteach"))
-    kb.row(CallbackButton(text="Все пользователи", payload="call:all"))
+    kb.row(CallbackButton(text="👥 Конкретная команда", payload="call:team"))
+    kb.row(CallbackButton(text="🎓 Все студенты", payload="call:allst"))
+    kb.row(CallbackButton(text="👨‍🏫 Все преподаватели", payload="call:allteach"))
+    kb.row(CallbackButton(text="👥 Все пользователи", payload="call:all"))
     kb.row(back_button())
     return kb
 
@@ -544,11 +544,11 @@ def call_recipients_menu() -> InlineKeyboardBuilder:
 def mailing_recipients_menu() -> InlineKeyboardBuilder:
     """Меню выбора аудитории для рассылки."""
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Конкретная команда", payload="mail:team"))
-    kb.row(CallbackButton(text="Все пользователи", payload="mail:all"))
-    kb.row(CallbackButton(text="Все студенты", payload="mail:students"))
-    kb.row(CallbackButton(text="Все преподаватели", payload="mail:teachers"))
-    kb.row(CallbackButton(text="Все партнёры", payload="mail:partners"))
+    kb.row(CallbackButton(text="👥 Конкретная команда", payload="mail:team"))
+    kb.row(CallbackButton(text="👥 Все пользователи", payload="mail:all"))
+    kb.row(CallbackButton(text="🎓 Все студенты", payload="mail:students"))
+    kb.row(CallbackButton(text="👨‍🏫 Все преподаватели", payload="mail:teachers"))
+    kb.row(CallbackButton(text="🤝 Все партнёры", payload="mail:partners"))
     kb.row(back_button())
     return kb
 
@@ -557,7 +557,7 @@ def teams_pick_list(teams: Iterable[sqlite3.Row], action: str
                     ) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     for t in teams:
-        kb.row(CallbackButton(text=t["name"], payload=f"{action}:{t['id']}"))
+        kb.row(CallbackButton(text=f"👥 {t['name']}", payload=f"{action}:{t['id']}"))
     kb.row(back_button())
     return kb
 
@@ -572,15 +572,15 @@ def team_pick_call(teams: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
 
 def cancel_kb() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Отмена", payload="cancel"))
+    kb.row(CallbackButton(text="🚫 Отмена", payload="cancel"))
     return kb
 
 
 def skip_cancel_kb() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(
-        CallbackButton(text="Пропустить", payload="skip"),
-        CallbackButton(text="Отмена", payload="cancel"),
+        CallbackButton(text="⏭ Пропустить", payload="skip"),
+        CallbackButton(text="🚫 Отмена", payload="cancel"),
     )
     return kb
 
@@ -589,10 +589,10 @@ def skip_cancel_kb() -> InlineKeyboardBuilder:
 def admin_contacts_manage(contacts: Iterable[sqlite3.Row]) -> InlineKeyboardBuilder:
     """Меню управления контактами администраторов."""
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="Добавить контакт", payload="admins:add"))
+    kb.row(CallbackButton(text="➕ Добавить контакт", payload="admins:add"))
     for contact in contacts:
         kb.row(CallbackButton(
-            text=f"Редактировать {contact['fio']}",
+            text=f"✏️ Редактировать {contact['fio']}",
             payload=f"admins:edit:{contact['id']}"
         ))
     kb.row(back_button())
@@ -602,7 +602,7 @@ def admin_contacts_manage(contacts: Iterable[sqlite3.Row]) -> InlineKeyboardBuil
 def admin_contact_edit_menu(contact_id: int) -> InlineKeyboardBuilder:
     """Меню редактирования контакта."""
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="❌ Удалить контакт", 
+    kb.row(CallbackButton(text="🗑 Удалить контакт", 
                           payload=f"admins:delete:{contact_id}"))
     kb.row(back_button("admins:manage"))
     return kb
@@ -659,7 +659,7 @@ def application_admin_actions(app_id: int) -> InlineKeyboardBuilder:
     kb.row(CallbackButton(text="✅ Одобрить", payload=f"apps:approve:{app_id}"))
     kb.row(CallbackButton(text="❌ Отклонить", payload=f"apps:reject:{app_id}"))
     kb.row(CallbackButton(text="📋 В проекты", payload=f"apps:convert:{app_id}"))
-    kb.row(CallbackButton(text="К списку заявок", payload="apps:list"))
+    kb.row(CallbackButton(text="📑 К списку заявок", payload="apps:list"))
     return kb
 
 

@@ -60,7 +60,7 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         kb.row(keyboards.back_button())
         
         await event.edit(
-            text="Админ-панель\n\nВыберите действие:",
+            text="⚙️ Админ-панель\n\nВыберите действие:",
             attachments=[kb.as_markup()],
         )
         return
@@ -69,12 +69,12 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
     if sub == "admins":
         admins = repo.list_admins()
         
-        text = "Управление администраторами\n\n"
-        text += f"Всего администраторов: {len(admins)}\n\n"
+        text = "👤 Управление администраторами\n\n"
+        text += f"👤 Всего администраторов: {len(admins)}\n\n"
         
         for admin in admins:
             fio = f"{admin['last_name']} {admin['first_name']}" if admin['last_name'] else admin['display_name']
-            text += f"• {fio} (ID: {admin['user_id']})\n"
+            text += f"• 👤 {fio} (ID: {admin['user_id']})\n"
         
         kb = InlineKeyboardBuilder()
         kb.row(CallbackButton(text="➕ Добавить администратора", payload="apanel:add_admin"))
@@ -128,12 +128,12 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
         
         # Обновляем список
         admins = repo.list_admins()
-        text = "Управление администраторами\n\n"
-        text += f"Всего администраторов: {len(admins)}\n\n"
+        text = "👤 Управление администраторами\n\n"
+        text += f"👤 Всего администраторов: {len(admins)}\n\n"
         
         for admin in admins:
             fio = f"{admin['last_name']} {admin['first_name']}" if admin['last_name'] else admin['display_name']
-            text += f"• {fio} (ID: {admin['user_id']})\n"
+            text += f"• 👤 {fio} (ID: {admin['user_id']})\n"
         
         kb = InlineKeyboardBuilder()
         kb.row(CallbackButton(text="➕ Добавить администратора", payload="apanel:add_admin"))
@@ -254,9 +254,9 @@ async def admin_panel_cb(event: MessageCallback, context: BaseContext) -> None:
                               payload=f"apanel:uedit:{target_id}"))
         kb.row(CallbackButton(text="🗑 Удалить",
                               payload=f"apanel:udelete:{target_id}"))
-        kb.row(CallbackButton(text="Назначить админом",
+        kb.row(CallbackButton(text="⭐ Назначить админом",
                               payload=f"apanel:make_admin:{target_id}"))
-        kb.row(CallbackButton(text="Назад", payload="apanel:users"))
+        kb.row(CallbackButton(text="⬅️ Назад", payload="apanel:users"))
         await event.edit(text="\n".join(lines), attachments=[kb.as_markup()])
         return
 
@@ -451,8 +451,8 @@ async def dir_add_value(event: MessageCreated, context: BaseContext) -> None:
         title = "Направление"
     await context.clear()
     kb = InlineKeyboardBuilder()
-    kb.row(CallbackButton(text="К списку", payload=f"dir:list:{kind}"))
-    kb.row(CallbackButton(text="Справочники", payload="dir:menu"))
+    kb.row(CallbackButton(text="📑 К списку", payload=f"dir:list:{kind}"))
+    kb.row(CallbackButton(text="📖 Справочники", payload="dir:menu"))
     await event.message.answer(
         f"{title} «{name}» добавлен!",
         attachments=[kb.as_markup()],
