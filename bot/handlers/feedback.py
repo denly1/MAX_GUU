@@ -89,6 +89,18 @@ async def fb_cb(event: MessageCallback, context: BaseContext) -> None:
     )
 
 
+def _user_display(user, user_id: int) -> tuple[str, str, str]:
+    """Возвращает (ФИО, телефон, display_name) с запасными вариантами."""
+    if not user:
+        return str(user_id), "—", "—"
+    u = dict(user)
+    fio = " ".join(filter(None, [u.get("last_name"), u.get("first_name"), u.get("patronymic")]))
+    fio = fio or u.get("display_name") or str(user_id)
+    phone = u.get("phone") or "—"
+    display = u.get("display_name") or "—"
+    return fio, phone, display
+
+
 @router.message_created(Feedback.text, F.message.body.text)
 async def fb_text(event: MessageCreated, context: BaseContext) -> None:
     text = (event.message.body.text or "").strip()
@@ -100,15 +112,16 @@ async def fb_text(event: MessageCreated, context: BaseContext) -> None:
     await context.clear()
     await event.message.answer("Спасибо! Ваше сообщение отправлено администратору.")
     user = repo.get_user(user_id)
-    fio = " ".join(filter(None, [user["last_name"], user["first_name"],
-                                 user["patronymic"]])) if user else str(user_id)
-    
+    fio, phone, display = _user_display(user, user_id)
+
     kb = InlineKeyboardBuilder()
     kb.row(CallbackButton(text="Ответить", payload=f"fb:answer:{fid}"))
-    
+
     await notify_admins_with_markup(
         text=(f"Новое сообщение обратной связи (#{fid})\n\n"
-              f"От: {fio}\nТелефон: {user['phone'] if user else '—'}\n\n"
+              f"От: {fio} (ID: {user_id})\n"
+              f"Telegram/MAX: {display}\n"
+              f"Телефон: {phone}\n\n"
               f"Сообщение: {text}"),
         markup=kb,
     )
@@ -213,7 +226,7 @@ async def forward_user_message(event: MessageCreated, context: BaseContext) -> N
     if not user:
         return
 
-    fio = " ".join(filter(None, [user["last_name"], user["first_name"], user["patronymic"]])) or user["display_name"] or str(user_id)
+    fio, phone, display = _user_display(user, user_id)
 
     kb = InlineKeyboardBuilder()
     kb.row(CallbackButton(text="Ответить", payload=f"fb:reply:{user_id}"))
@@ -221,7 +234,9 @@ async def forward_user_message(event: MessageCreated, context: BaseContext) -> N
     await notify_admins_with_markup(
         text=(f"💬 Сообщение от пользователя\n\n"
               f"От: {fio} (ID: {user_id})\n"
-              f"Роль: {texts.ROLE_LABELS.get(user['role'], user['role'])}\n\n"
+              f"Telegram/MAX: {display}\n"
+              f"Роль: {texts.ROLE_LABELS.get(user['role'], user['role'])}\n"
+              f"Телефон: {phone}\n\n"
               f"{text}"),
         markup=kb,
     )
