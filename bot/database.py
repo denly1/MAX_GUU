@@ -11,7 +11,7 @@ import sqlite3
 from typing import Optional
 
 from . import config
-from .texts import ADMIN_CONTACTS, FAQ_ITEMS
+from .texts import ADMIN_CONTACTS, DEFAULT_MEME, FAQ_ITEMS
 
 _conn: Optional[sqlite3.Connection] = None
 
@@ -231,7 +231,7 @@ def _seed(conn: sqlite3.Connection) -> None:
     if conn.execute("SELECT COUNT(*) FROM memes").fetchone()[0] == 0:
         conn.execute(
             "INSERT INTO memes (code_word, text, image_path) VALUES (?, ?, ?)",
-            ("служение", "Обучение служением — это сила! 💙", None),
+            tuple(DEFAULT_MEME),
         )
 
     # Наполняем справочники начальными данными если пусты
