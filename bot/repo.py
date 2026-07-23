@@ -83,9 +83,15 @@ def set_was_admin(user_id: int, was_admin: int = 1) -> None:
 
 
 def delete_user(user_id: int) -> None:
-    """Удаляет пользователя и его членство в командах."""
+    """Удаляет пользователя и все связанные с ним записи."""
     conn = _c()
     conn.execute("DELETE FROM team_members WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM user_questions WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM feedback WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM event_recipients WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM applications WHERE user_id = ?", (user_id,))
+    conn.execute("UPDATE teams SET leader_id = NULL WHERE leader_id = ?", (user_id,))
+    conn.execute("UPDATE events SET created_by = NULL WHERE created_by = ?", (user_id,))
     conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
     conn.commit()
 
