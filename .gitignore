@@ -14,6 +14,16 @@ data/
 # Exports
 exports/
 
+# Uploaded/generated media (photos, memes, etc.)
+assets/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.svg
+*.bmp
+
 # IDE
 .vscode/
 .idea/
